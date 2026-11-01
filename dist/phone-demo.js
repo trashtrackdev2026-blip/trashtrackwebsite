@@ -140,7 +140,9 @@ export class PhoneDemo {
   }
   scrollWithin(target){
     const screen=target.closest('[data-demo-screen]');if(!screen)return;
-    const top=target.getBoundingClientRect().top-screen.getBoundingClientRect().top+screen.scrollTop;
+    const rect=target.getBoundingClientRect(),viewport=screen.getBoundingClientRect();
+    if(rect.top>=viewport.top+5&&rect.bottom<=viewport.bottom-5)return;
+    const top=rect.top-viewport.top+screen.scrollTop;
     screen.scrollTo({top:Math.max(0,top-screen.clientHeight*.5),behavior:this.canAnimate()?'smooth':'instant'});
   }
   pointTo(name){
