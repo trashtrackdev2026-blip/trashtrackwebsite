@@ -47,7 +47,7 @@ function closeIntro() {
   intro.classList.add('departing');
   $('#site-content').inert = false;
   document.body.classList.remove('intro-active');
-  storage.set('trashtrack-arrived', 'yes', true);
+  storage.set('trashtrack-arrived-v2', 'yes', true);
   if (introReturnFocus?.isConnected) introReturnFocus.focus({ preventScroll: true });
   else $('.site-header .brand').focus({ preventScroll: true });
   setTimeout(() => { if (!introOpen) intro.hidden = true; }, paused ? 0 : 800);
@@ -59,13 +59,13 @@ function showIntro(replay = false) {
   }
   introTimers.forEach(clearTimeout);
   introTimers = [];
-  introReturnFocus = replay ? $('#replay-intro') : null;
+  introReturnFocus = replay ? document.activeElement : null;
   introOpen = true;
   intro.hidden = false;
   intro.classList.remove('departing');
   // Restart only the opening scene's animations when replaying.
   if (replay) {
-    $$('.intro-scene, .intro-wash, .intro-road, .intro-truck', intro).forEach(element => {
+    $$('.intro-scene, .intro-truck, .intro-loading', intro).forEach(element => {
       element.style.animation = 'none';
       void element.offsetWidth;
       element.style.animation = '';
@@ -87,10 +87,13 @@ function showIntro(replay = false) {
   later(closeIntro, 4200);
 }
 $('#skip-intro').addEventListener('click', closeIntro);
-$('#replay-intro').addEventListener('click', () => {
+function replayArrival() {
   if (paused) { paused = false; storage.set('trashtrack-motion', 'playing'); syncMotion(); }
   showIntro(true);
-});
+  layoutRoads();
+}
+$('#replay-intro').addEventListener('click', replayArrival);
+$$('[data-replay]').forEach(button => button.addEventListener('click', replayArrival));
 document.addEventListener('keydown', event => {
   if (!introOpen) return;
   if (event.key === 'Escape') closeIntro();
@@ -111,7 +114,6 @@ function layoutRoads() {
   $('.intro-truck').style.offsetPath = `path('M${-100*iw} ${180*ih}C${200*iw} ${210*ih} ${260*iw} ${40*ih} ${650*iw} ${103*ih}S${1080*iw} ${210*ih} ${1540*iw} ${40*ih}')`;
   $('.intro-truck').style.offsetAnchor = '50% 100%';
 }
-$('#replay-intro').addEventListener('click', layoutRoads);
 
 // Passive input and a single animation frame keep parallax work bounded.
 let ticking = false;
@@ -128,11 +130,11 @@ function updateScene() {
     hero.style.setProperty('--phone-y', `${Math.min(y * .055, 45) + pointerY * -5}px`);
     hero.style.setProperty('--foreground-y', `${Math.max(-y * .065, -65) + pointerY * -7}px`);
     hero.style.setProperty('--road-y', `${Math.max(-y * .025, -25)}px`);
-    $('.phone-halo').style.translate = `${pointerX * 7}px ${pointerY * 5}px`;
+    hero.style.setProperty('--atmosphere-x', `${pointerX * 5}px`);
   }
   const journeyRect = $('#journey').getBoundingClientRect();
   const progress = Math.max(0, Math.min(1, (innerHeight - journeyRect.top) / (innerHeight + journeyRect.height)));
-  $('#journey').style.setProperty('--journey-truck-x', `${progress * Math.min(innerWidth * .43, 620)}px`);
+  $('#journey').style.setProperty('--journey-progress', String(progress));
 }
 function requestUpdate() {
   if (!ticking) { ticking = true; requestAnimationFrame(updateScene); }
@@ -177,7 +179,7 @@ $$('#mobile-nav a').forEach(link => link.addEventListener('click', closeMenu));
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && !$('#mobile-nav').hidden) { closeMenu(); menuButton.focus(); }
 });
-matchMedia('(min-width: 681px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
+matchMedia('(min-width: 641px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
 
 // Real app screenshots, with manual tabs and complete keyboard navigation.
 const features = {
@@ -337,8 +339,16 @@ async function startDownload() {
 $('#download-start').addEventListener('click', startDownload);
 $('#download-cancel').addEventListener('click', () => downloadController?.abort());
 downloadDialog.addEventListener('close', () => { if (activeDownload) downloadController?.abort(); });
-addEventListener('pagehide', () => { downloadController?.abort(); if (downloadObjectUrl) URL.revokeObjectURL(downloadObjectUrl); });
+addEventListener('pagehide', () => {
+  downloadController?.abort();
+  if (downloadObjectUrl) {
+    URL.revokeObjectURL(downloadObjectUrl);
+    downloadObjectUrl = null;
+    $('#download-save').hidden = true;
+    $('#download-start span').textContent = 'Download Android preview';
+  }
+});
 
-if (!storage.get('trashtrack-arrived', true) && !location.hash) showIntro();
+if (!storage.get('trashtrack-arrived-v2', true) && !location.hash) showIntro();
 layoutRoads();
 requestUpdate();

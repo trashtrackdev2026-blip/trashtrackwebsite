@@ -8,6 +8,8 @@ const dist = path.join(root, 'dist');
 const html = await readFile(path.join(dist, 'index.html'), 'utf8');
 const css = await readFile(path.join(dist, 'styles.css'), 'utf8');
 const js = await readFile(path.join(dist, 'app.js'), 'utf8');
+assert.equal([...html.matchAll(/<html(?:\s|>)/g)].length, 1, 'Exactly one HTML document');
+assert.equal([...html.matchAll(/<\/html>/g)].length, 1, 'Exactly one closing HTML tag');
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 assert.equal(ids.length, new Set(ids).size, 'HTML IDs must be unique');
 for (const match of html.matchAll(/(?:href|aria-controls)="#?([^"\s]+)"/g)) {
