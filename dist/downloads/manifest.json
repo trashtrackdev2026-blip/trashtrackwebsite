@@ -1,0 +1,30 @@
+{
+  "filename": "TrashTrack-Soft-World-preview.apk",
+  "version": "1.0.2",
+  "channel": "Android preview build",
+  "minAndroid": "7.0",
+  "bytes": 67309420,
+  "sha256": "5b5560bab0d8172f37c46f125a401f3fb7d1d99c635fc31062b333efc1091c8f",
+  "parts": [
+    {
+      "url": "downloads/trashtrack-1.bin",
+      "bytes": 16777216
+    },
+    {
+      "url": "downloads/trashtrack-2.bin",
+      "bytes": 16777216
+    },
+    {
+      "url": "downloads/trashtrack-3.bin",
+      "bytes": 16777216
+    },
+    {
+      "url": "downloads/trashtrack-4.bin",
+      "bytes": 16777216
+    },
+    {
+      "url": "downloads/trashtrack-5.bin",
+      "bytes": 200556
+    }
+  ]
+}
