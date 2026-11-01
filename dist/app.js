@@ -1,9 +1,10 @@
-import { filmFrame, featureScrollTarget } from './motion-math.js';
+import { startFeatureShow } from './feature-show.js';
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
 const root = document.documentElement;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let featureShow = null;
 const storage = {
   get(key, session = false) { try { return (session ? sessionStorage : localStorage).getItem(key); } catch { return null; } },
   set(key, value, session = false) { try { (session ? sessionStorage : localStorage).setItem(key, value); } catch { /* Storage is optional. */ } },
@@ -17,6 +18,7 @@ function syncMotion() {
   $('#motion-toggle').setAttribute('aria-pressed', String(paused));
   $('#motion-toggle span').textContent = paused ? 'Enable motion' : 'Pause motion';
   $('#motion-toggle use').setAttribute('href', paused ? '#i-play' : '#i-pause');
+  featureShow?.setMotion(paused);
 }
 syncMotion();
 $('#motion-toggle').addEventListener('click', () => {
@@ -52,6 +54,7 @@ function closeIntro() {
   intro.classList.add('departing');
   $('#site-content').inert = false;
   document.body.classList.remove('intro-active');
+  featureShow?.setArrival(false);
   root.classList.remove('arrival-pending');
   if (automaticArrival && (!location.hash || location.hash === '#home')) window.scrollTo({ top: 0, behavior: 'instant' });
   if (introReturnFocus?.isConnected) introReturnFocus.focus({ preventScroll: true });
@@ -77,6 +80,7 @@ function showIntro(replay = false) {
   }
   $('#site-content').inert = true;
   document.body.classList.add('intro-active');
+  featureShow?.setArrival(true);
   root.classList.remove('arrival-pending');
   $('#typed-intro').textContent = '';
   $('#intro-line').classList.remove('visible');
@@ -144,7 +148,6 @@ function updateScene() {
   ticking = false;
   const y = window.scrollY;
   $('#header').classList.toggle('scrolled', y > 70);
-  updateFeatureFilm();
   if (paused) return;
   const hero = $('.hero');
   if (y < hero.offsetHeight + 100) {
@@ -203,77 +206,14 @@ document.addEventListener('keydown', event => {
 });
 matchMedia('(min-width: 641px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
 
-// Four reference-inspired scenes, scrubbed by native scroll and direct controls.
-const features = {
-  collections: { image: 'assets/app-home.webp', alt: 'TrashTrack home screen showing an illustrative next collection', description: 'See posted dates, collection notes, and schedules for your barangay.', number: '01 / 04', kicker: 'A LITTLE LESS GUESSWORK', title: 'Know what’s next.', accent: 'Before collection day.', summary: 'Your barangay’s posted dates, collection notes, and little reminders to prepare ahead.', icon: 'calendar', secondary: 'leaf', cardKicker: 'YOUR BARANGAY, IN VIEW', cardTitle: 'One less thing to wonder.', cardCopy: 'Collection dates and notes, together.' },
-  assist: { image: 'assets/app-assist.webp', alt: 'TrashTrack Assist conversation showing a waste-sorting guidance example', description: 'Scan items in the app, ask a waste question, and explore guidance for everyday sorting.', number: '02 / 04', kicker: 'A BETTER DIRECTION FOR EVERY ITEM', title: 'A little unsure?', accent: 'Let’s figure it out.', summary: 'Scan an item. Ask a question. Find a little guidance for the things you throw away.', icon: 'scan', secondary: 'recycle', cardKicker: 'SCAN. ASK. UNDERSTAND.', cardTitle: 'A little guidance goes far.', cardCopy: 'Meet TrashTrack Assist, your waste guide.' },
-  reports: { image: 'assets/app-report.webp', alt: 'TrashTrack report entry screen with fields for a community waste concern', description: 'Share a concern with details, a photo, and a location. Follow updates in your report timeline.', number: '03 / 04', kicker: 'SMALL OBSERVATIONS. SHARED CARE.', title: 'See something?', accent: 'Start a little change.', summary: 'A photo, a place, a few details. Give a waste concern the context it needs, and follow your report.', icon: 'report', secondary: 'pin', cardKicker: 'CARE STARTS WITH NOTICING', cardTitle: 'Your surroundings matter.', cardCopy: 'Share details. Follow your report’s updates.' },
-  events: { image: 'assets/app-events.webp', alt: 'TrashTrack community events screen using illustrative preview data', description: 'Explore posted events and stay connected with community activities in the app.', number: '04 / 04', kicker: 'OUR HOME. OUR SHARED EVERYDAY.', title: 'Good happens', accent: 'when we take part.', summary: 'Find posted community activities and be part of the little things that bring us together.', icon: 'people', secondary: 'calendar', cardKicker: 'A COMMUNITY THAT CARES', cardTitle: 'A greener Balete, together.', cardCopy: 'Explore events posted in the app.' },
-};
-const featureKeys = Object.keys(features);
-const film = $('[data-feature-film]');
-root.classList.add('feature-film-ready');
-film.dataset.scene = 'collections';
-Object.values(features).forEach(feature => { const image = new Image(); image.decoding = 'async'; image.src = feature.image; });
-let selectedFeature = 'collections';
-function selectFeature(key) {
-  const feature = features[key];
-  if (!feature || key === selectedFeature) return;
-  selectedFeature = key;
-  $$('.feature-tab').forEach(tab => {
-    const active = tab.dataset.feature === key;
-    tab.classList.toggle('active', active);
-    tab.setAttribute('aria-selected', String(active));
-    tab.tabIndex = active ? 0 : -1;
-  });
-  $('#feature-panel').setAttribute('aria-labelledby', `tab-${key}`);
-  $('#feature-description').textContent = feature.description;
-  $('#feature-number').textContent = feature.number;
-  $('#film-counter').textContent = feature.number.slice(0, 2);
-  $('#film-kicker').textContent = feature.kicker;
-  $('#film-title-line').textContent = feature.title;
-  $('#film-title-accent').textContent = feature.accent;
-  $('#film-summary').textContent = feature.summary;
-  $('#film-card-kicker').textContent = feature.cardKicker;
-  $('#film-card-title').textContent = feature.cardTitle;
-  $('#film-card-copy').textContent = feature.cardCopy;
-  $('#film-card-icon').setAttribute('href', `#i-${feature.icon}`);
-  $('#film-token-primary').setAttribute('href', `#i-${feature.icon}`);
-  $('#film-token-secondary').setAttribute('href', `#i-${feature.secondary}`);
-  $('#feature-screen').src = feature.image;
-  $('#feature-screen').alt = feature.alt;
-  film.dataset.scene = key;
-}
-function updateFeatureFilm() {
-  const bounds = film.getBoundingClientRect();
-  const travel = Math.max(1, film.offsetHeight - innerHeight);
-  if (bounds.bottom < 0 || bounds.top > innerHeight) return;
-  const frame = filmFrame(bounds.top, travel, featureKeys.length, paused);
-  selectFeature(featureKeys[frame.index]);
-  for (const name of ['progress', 'phase', 'enter', 'accent', 'open', 'out']) film.style.setProperty(`--film-${name}`, String(frame[name]));
-}
-function goToFeature(key) {
-  const index = featureKeys.indexOf(key);
-  if (index < 0) return;
-  const top = film.getBoundingClientRect().top + scrollY;
-  const travel = Math.max(1, film.offsetHeight - innerHeight);
-  const target = featureScrollTarget(top, travel, index, featureKeys.length);
-  window.scrollTo({ top: target, behavior: 'instant' });
-  selectFeature(key);
-  requestUpdate();
-}
-$$('.feature-tab').forEach((tab, index, tabs) => {
-  tab.addEventListener('click', () => goToFeature(tab.dataset.feature));
-  tab.addEventListener('keydown', event => {
-    let next;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
-    if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = tabs.length - 1;
-    if (next !== undefined) { event.preventDefault(); tabs[next].focus(); goToFeature(tabs[next].dataset.feature); }
-  });
+// Automatic demonstrations advance by time, independently of scrolling.
+featureShow = startFeatureShow({
+  paused,
+  enableMotion() { paused = false; storage.set('trashtrack-motion','playing'); syncMotion(); requestUpdate(); },
 });
-$$('[data-feature-link]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); goToFeature(link.dataset.featureLink); }));
+$$('[data-feature-link]').forEach(link => link.addEventListener('click',event=>{
+  event.preventDefault();featureShow.select(link.dataset.featureLink,{scroll:true});
+}));
 
 // A bounded learning example, not an assertion about local collection policies.
 let selectedItem = 'bottle';

@@ -10,6 +10,7 @@ const file = path.join(root, 'dist/index.html');
 const previous = await readFile(file, 'utf8');
 let library = previous.match(/<svg class="svg-library"[\s\S]*?<\/svg>/)[0];
 const map = { 'i-arrow':'ArrowUpRight', 'i-down':'Download', 'i-leaf':'Leaf', 'i-calendar':'CalendarDays', 'i-scan':'ScanLine', 'i-report':'MessageCircleWarning', 'i-people':'UsersRound', 'i-pin':'MapPin', 'i-play':'Play', 'i-pause':'Pause', 'i-close':'X', 'i-android':'Smartphone', 'i-check':'Check', 'bottle':'Milk', 'banana':'Banana', 'i-recycle':'Recycle', 'i-trash':'Trash2', 'i-route':'Route', 'i-chevron':'ChevronDown' };
+Object.assign(map, {'i-home':'House','i-document':'FileText','i-user':'UserRound','i-camera':'Camera','i-bell':'Bell','i-clock':'Clock3','i-book':'BookOpen','i-qr':'QrCode','i-left':'ArrowLeft','i-right':'ChevronRight','i-image':'Image','i-send':'Send','i-target':'LocateFixed','i-search':'Search','i-settings':'Settings','i-help':'CircleHelp','i-info':'Info','i-logout':'LogOut'});
 for (const [id, name] of Object.entries(map)) {
   const markup = renderToStaticMarkup(React.createElement(lucide[name], { strokeWidth:1.5 }));
   const inner = markup.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
@@ -64,9 +65,16 @@ ${[['collections','calendar','Collection schedules','Your barangay. Your next co
 </main><footer class="footer"><div class="container footer-top"><span>FOR THE PLACE WE CALL HOME.</span><a href="#home">Back to the top ${icon('arrow')}</a></div><div class="container footer-wordmark" aria-hidden="true">TrashTrack<span>.</span></div><div class="container footer-bottom"><span>Made with care for Balete, Batangas.</span><div><button id="motion-toggle" type="button" aria-pressed="false">${icon('pause')}<span>Pause motion</span></button><button id="privacy-open" type="button">About this website</button></div></div></footer></div>
 ${dialogs}
 <noscript><div class="noscript-note">Enable JavaScript for the animated journey, interactive app preview and Android download.</div></noscript></body></html>`;
-const film = await readFile(path.join(root, 'fragments/feature-film.html'), 'utf8');
+const phoneDemo = (await readFile(path.join(root, 'fragments/phone-demo.html'), 'utf8')).replace(/\{\{([\w-]+)\}\}/g, (_,name)=>icon(name));
+const film = (await readFile(path.join(root, 'fragments/feature-film.html'), 'utf8')).replace('<!--PHONE_DEMO-->',phoneDemo);
 const outputHtml = html.replace(/<section class="inside section-pad" id="inside"[\s\S]*?<\/section>/, '')
   .replace('<section id="our-home"', film + '\n<section id="our-home"')
+  .replace('href="styles.css">','href="styles.css"><link rel="stylesheet" href="demo.css"><link rel="stylesheet" href="app-ui.css">')
+  .replace('The website shows actual app screens with illustrative preview data. Open the app and check your barangay’s posted schedule for current collection information.','The interactive phone uses example data. Open the Android app and check your barangay’s posted schedule for current collection information.')
+  .replace('App screens contain illustrative preview data; they do not display live resident records.','The interactive phone uses example data and does not display live resident records. Reports and event joins in the demo stay in this page.')
+  .replace('the intro is remembered for the current browser session','the arrival plays on each full page opening')
+  .replace('BALETE, BATANGAS<span class="hero-location-separator"></span>ROOTED IN OUR COMMUNITY','<span class="hero-town">BALETE, BATANGAS</span><span class="hero-location-separator"></span><span class="hero-context">ROOTED IN OUR COMMUNITY</span>')
+  .replace('class="scroll-cue" href="#our-home"','class="scroll-cue" href="#our-home" aria-label="Scroll to explore"')
   .replace('<link rel="stylesheet"', '<script>document.documentElement.classList.add("arrival-pending");setTimeout(()=>document.documentElement.classList.remove("arrival-pending"),8000);</script><link rel="stylesheet"');
 await writeFile(file, outputHtml);
 await copyFile(require.resolve('lucide-react/LICENSE'), path.join(root, 'dist/assets/Lucide-LICENSE.txt')).catch(()=>{});

@@ -15,13 +15,15 @@ assert.equal(ids.length, new Set(ids).size, 'HTML IDs must be unique');
 for (const match of html.matchAll(/(?:href|aria-controls)="#?([^"\s]+)"/g)) {
   if (match[0].includes('href="#') || match[0].includes('aria-controls=')) assert(ids.includes(match[1]), `Missing target: ${match[1]}`);
 }
-for (const match of html.matchAll(/(?:src|href)="((?:assets\/|styles\.|app\.)[^"?#]+)"/g)) {
+for (const match of html.matchAll(/(?:src|href)="((?:assets\/[^"?#]+|[^"/?#]+\.(?:css|js)))"/g)) {
   assert((await stat(path.join(dist, match[1]))).isFile(), `Missing asset: ${match[1]}`);
 }
 assert(css.includes('prefers-reduced-motion'), 'Reduced motion must be supported');
 assert(js.includes('AbortController'), 'Downloads must be cancellable');
 assert(js.includes("digest('SHA-256'"), 'Downloads must be verified');
-assert.equal(spawnSync(process.execPath, ['--check', path.join(dist, 'app.js')]).status, 0, 'JavaScript syntax');
+for (const name of await readdir(dist)) {
+  if (name.endsWith('.js')) assert.equal(spawnSync(process.execPath, ['--check', path.join(dist, name)]).status, 0, `${name} syntax`);
+}
 const manifest = JSON.parse(await readFile(path.join(dist, 'downloads/manifest.json'), 'utf8'));
 const hash = createHash('sha256');
 let bytes = 0;
