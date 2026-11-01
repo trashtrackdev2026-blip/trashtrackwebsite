@@ -1,3 +1,5 @@
+import { filmFrame, featureScrollTarget } from './motion-math.js';
+
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
 const root = document.documentElement;
@@ -34,6 +36,8 @@ const intro = $('#intro');
 let introTimers = [];
 let introReturnFocus;
 let introOpen = false;
+let introGeneration = 0;
+let automaticArrival = false;
 function later(callback, delay) {
   const timer = setTimeout(callback, delay);
   introTimers.push(timer);
@@ -42,27 +46,27 @@ function later(callback, delay) {
 function closeIntro() {
   if (!introOpen) return;
   introOpen = false;
+  introGeneration++;
   introTimers.forEach(clearTimeout);
   introTimers = [];
   intro.classList.add('departing');
   $('#site-content').inert = false;
   document.body.classList.remove('intro-active');
-  storage.set('trashtrack-arrived-v2', 'yes', true);
+  root.classList.remove('arrival-pending');
+  if (automaticArrival && (!location.hash || location.hash === '#home')) window.scrollTo({ top: 0, behavior: 'instant' });
   if (introReturnFocus?.isConnected) introReturnFocus.focus({ preventScroll: true });
   else $('.site-header .brand').focus({ preventScroll: true });
   setTimeout(() => { if (!introOpen) intro.hidden = true; }, paused ? 0 : 800);
 }
 function showIntro(replay = false) {
-  if (paused) {
-    if (replay) { window.scrollTo({ top: 0, behavior: 'auto' }); }
-    return;
-  }
   introTimers.forEach(clearTimeout);
   introTimers = [];
+  const generation = ++introGeneration;
   introReturnFocus = replay ? document.activeElement : null;
+  automaticArrival = !replay;
   introOpen = true;
   intro.hidden = false;
-  intro.classList.remove('departing');
+  intro.classList.remove('departing', 'is-running');
   // Restart only the opening scene's animations when replaying.
   if (replay) {
     $$('.intro-scene, .intro-truck, .intro-loading', intro).forEach(element => {
@@ -73,18 +77,35 @@ function showIntro(replay = false) {
   }
   $('#site-content').inert = true;
   document.body.classList.add('intro-active');
+  root.classList.remove('arrival-pending');
   $('#typed-intro').textContent = '';
   $('#intro-line').classList.remove('visible');
   $('#intro-progress').textContent = '01 / 03';
   $('#skip-intro').focus({ preventScroll: true });
   const message = 'Welcome to Balete.';
-  [...message].forEach((character, index) => later(() => {
-    $('#typed-intro').textContent += character;
-  }, 450 + index * 77));
-  later(() => { $('#intro-progress').textContent = '02 / 03'; }, 1500);
-  later(() => { $('#intro-line').classList.add('visible'); }, 2050);
-  later(() => { $('#intro-progress').textContent = '03 / 03'; }, 3100);
-  later(closeIntro, 4200);
+  if (paused) {
+    $('#typed-intro').textContent = message;
+    $('#intro-line').classList.add('visible');
+    later(closeIntro, 1400);
+    return;
+  }
+  let started = false;
+  function begin() {
+    if (started || !introOpen || generation !== introGeneration) return;
+    started = true;
+    intro.classList.add('is-running');
+    [...message].forEach((character, index) => later(() => {
+      $('#typed-intro').textContent += character;
+    }, 350 + index * 77));
+    later(() => { $('#intro-progress').textContent = '02 / 03'; }, 1400);
+    later(() => { $('#intro-line').classList.add('visible'); }, 1950);
+    later(() => { $('#intro-progress').textContent = '03 / 03'; }, 3000);
+    later(closeIntro, 4200);
+  }
+  const backdrop = new Image();
+  backdrop.src = 'assets/balete-cinematic.webp';
+  if (backdrop.complete && backdrop.naturalWidth) begin();
+  else { backdrop.decode().then(begin, begin); later(begin, 1100); }
 }
 $('#skip-intro').addEventListener('click', closeIntro);
 function replayArrival() {
@@ -123,6 +144,7 @@ function updateScene() {
   ticking = false;
   const y = window.scrollY;
   $('#header').classList.toggle('scrolled', y > 70);
+  updateFeatureFilm();
   if (paused) return;
   const hero = $('.hero');
   if (y < hero.offsetHeight + 100) {
@@ -181,14 +203,18 @@ document.addEventListener('keydown', event => {
 });
 matchMedia('(min-width: 641px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
 
-// Real app screenshots, with manual tabs and complete keyboard navigation.
+// Four reference-inspired scenes, scrubbed by native scroll and direct controls.
 const features = {
-  collections: { image: 'assets/app-collections.webp', alt: 'TrashTrack barangay collection schedules with illustrative preview data', description: 'See posted dates, collection notes, and schedules for your barangay.', number: '01 / 04' },
-  assist: { image: 'assets/app-assist.webp', alt: 'TrashTrack Assist conversation showing a waste-sorting guidance example', description: 'Scan items in the app, ask a waste question, and explore guidance for everyday sorting.', number: '02 / 04' },
-  reports: { image: 'assets/app-report.webp', alt: 'TrashTrack report entry screen with fields for a community waste concern', description: 'Share a concern with details, a photo, and a location. Follow updates in your report timeline.', number: '03 / 04' },
-  events: { image: 'assets/app-events.webp', alt: 'TrashTrack community events screen using illustrative preview data', description: 'Explore posted events and stay connected with community activities in the app.', number: '04 / 04' },
+  collections: { image: 'assets/app-home.webp', alt: 'TrashTrack home screen showing an illustrative next collection', description: 'See posted dates, collection notes, and schedules for your barangay.', number: '01 / 04', kicker: 'A LITTLE LESS GUESSWORK', title: 'Know what’s next.', accent: 'Before collection day.', summary: 'Your barangay’s posted dates, collection notes, and little reminders to prepare ahead.', icon: 'calendar', secondary: 'leaf', cardKicker: 'YOUR BARANGAY, IN VIEW', cardTitle: 'One less thing to wonder.', cardCopy: 'Collection dates and notes, together.' },
+  assist: { image: 'assets/app-assist.webp', alt: 'TrashTrack Assist conversation showing a waste-sorting guidance example', description: 'Scan items in the app, ask a waste question, and explore guidance for everyday sorting.', number: '02 / 04', kicker: 'A BETTER DIRECTION FOR EVERY ITEM', title: 'A little unsure?', accent: 'Let’s figure it out.', summary: 'Scan an item. Ask a question. Find a little guidance for the things you throw away.', icon: 'scan', secondary: 'recycle', cardKicker: 'SCAN. ASK. UNDERSTAND.', cardTitle: 'A little guidance goes far.', cardCopy: 'Meet TrashTrack Assist, your waste guide.' },
+  reports: { image: 'assets/app-report.webp', alt: 'TrashTrack report entry screen with fields for a community waste concern', description: 'Share a concern with details, a photo, and a location. Follow updates in your report timeline.', number: '03 / 04', kicker: 'SMALL OBSERVATIONS. SHARED CARE.', title: 'See something?', accent: 'Start a little change.', summary: 'A photo, a place, a few details. Give a waste concern the context it needs, and follow your report.', icon: 'report', secondary: 'pin', cardKicker: 'CARE STARTS WITH NOTICING', cardTitle: 'Your surroundings matter.', cardCopy: 'Share details. Follow your report’s updates.' },
+  events: { image: 'assets/app-events.webp', alt: 'TrashTrack community events screen using illustrative preview data', description: 'Explore posted events and stay connected with community activities in the app.', number: '04 / 04', kicker: 'OUR HOME. OUR SHARED EVERYDAY.', title: 'Good happens', accent: 'when we take part.', summary: 'Find posted community activities and be part of the little things that bring us together.', icon: 'people', secondary: 'calendar', cardKicker: 'A COMMUNITY THAT CARES', cardTitle: 'A greener Balete, together.', cardCopy: 'Explore events posted in the app.' },
 };
-let featureTimer;
+const featureKeys = Object.keys(features);
+const film = $('[data-feature-film]');
+root.classList.add('feature-film-ready');
+film.dataset.scene = 'collections';
+Object.values(features).forEach(feature => { const image = new Image(); image.decoding = 'async'; image.src = feature.image; });
 let selectedFeature = 'collections';
 function selectFeature(key) {
   const feature = features[key];
@@ -203,26 +229,51 @@ function selectFeature(key) {
   $('#feature-panel').setAttribute('aria-labelledby', `tab-${key}`);
   $('#feature-description').textContent = feature.description;
   $('#feature-number').textContent = feature.number;
-  $('.feature-phone').classList.add('switching');
-  clearTimeout(featureTimer);
-  featureTimer = setTimeout(() => {
-    $('#feature-screen').src = feature.image;
-    $('#feature-screen').alt = feature.alt;
-    $('.feature-phone').classList.remove('switching');
-  }, paused ? 0 : 160);
+  $('#film-counter').textContent = feature.number.slice(0, 2);
+  $('#film-kicker').textContent = feature.kicker;
+  $('#film-title-line').textContent = feature.title;
+  $('#film-title-accent').textContent = feature.accent;
+  $('#film-summary').textContent = feature.summary;
+  $('#film-card-kicker').textContent = feature.cardKicker;
+  $('#film-card-title').textContent = feature.cardTitle;
+  $('#film-card-copy').textContent = feature.cardCopy;
+  $('#film-card-icon').setAttribute('href', `#i-${feature.icon}`);
+  $('#film-token-primary').setAttribute('href', `#i-${feature.icon}`);
+  $('#film-token-secondary').setAttribute('href', `#i-${feature.secondary}`);
+  $('#feature-screen').src = feature.image;
+  $('#feature-screen').alt = feature.alt;
+  film.dataset.scene = key;
+}
+function updateFeatureFilm() {
+  const bounds = film.getBoundingClientRect();
+  const travel = Math.max(1, film.offsetHeight - innerHeight);
+  if (bounds.bottom < 0 || bounds.top > innerHeight) return;
+  const frame = filmFrame(bounds.top, travel, featureKeys.length, paused);
+  selectFeature(featureKeys[frame.index]);
+  for (const name of ['progress', 'phase', 'enter', 'accent', 'open', 'out']) film.style.setProperty(`--film-${name}`, String(frame[name]));
+}
+function goToFeature(key) {
+  const index = featureKeys.indexOf(key);
+  if (index < 0) return;
+  const top = film.getBoundingClientRect().top + scrollY;
+  const travel = Math.max(1, film.offsetHeight - innerHeight);
+  const target = featureScrollTarget(top, travel, index, featureKeys.length);
+  window.scrollTo({ top: target, behavior: 'instant' });
+  selectFeature(key);
+  requestUpdate();
 }
 $$('.feature-tab').forEach((tab, index, tabs) => {
-  tab.addEventListener('click', () => selectFeature(tab.dataset.feature));
+  tab.addEventListener('click', () => goToFeature(tab.dataset.feature));
   tab.addEventListener('keydown', event => {
     let next;
     if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % tabs.length;
     if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
     if (event.key === 'Home') next = 0;
     if (event.key === 'End') next = tabs.length - 1;
-    if (next !== undefined) { event.preventDefault(); tabs[next].focus(); selectFeature(tabs[next].dataset.feature); }
+    if (next !== undefined) { event.preventDefault(); tabs[next].focus(); goToFeature(tabs[next].dataset.feature); }
   });
 });
-$$('[data-feature-link]').forEach(link => link.addEventListener('click', () => selectFeature(link.dataset.featureLink)));
+$$('[data-feature-link]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); goToFeature(link.dataset.featureLink); }));
 
 // A bounded learning example, not an assertion about local collection policies.
 let selectedItem = 'bottle';
@@ -349,6 +400,11 @@ addEventListener('pagehide', () => {
   }
 });
 
-if (!storage.get('trashtrack-arrived-v2', true) && !location.hash) showIntro();
+// Every full page opening gets the arrival; same-page anchors do not restart it.
+if (!location.hash || location.hash === '#home') {
+  history.scrollRestoration = 'manual';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+showIntro();
 layoutRoads();
 requestUpdate();

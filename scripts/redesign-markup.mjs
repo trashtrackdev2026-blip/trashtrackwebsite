@@ -64,6 +64,10 @@ ${[['collections','calendar','Collection schedules','Your barangay. Your next co
 </main><footer class="footer"><div class="container footer-top"><span>FOR THE PLACE WE CALL HOME.</span><a href="#home">Back to the top ${icon('arrow')}</a></div><div class="container footer-wordmark" aria-hidden="true">TrashTrack<span>.</span></div><div class="container footer-bottom"><span>Made with care for Balete, Batangas.</span><div><button id="motion-toggle" type="button" aria-pressed="false">${icon('pause')}<span>Pause motion</span></button><button id="privacy-open" type="button">About this website</button></div></div></footer></div>
 ${dialogs}
 <noscript><div class="noscript-note">Enable JavaScript for the animated journey, interactive app preview and Android download.</div></noscript></body></html>`;
-await writeFile(file, html);
+const film = await readFile(path.join(root, 'fragments/feature-film.html'), 'utf8');
+const outputHtml = html.replace(/<section class="inside section-pad" id="inside"[\s\S]*?<\/section>/, '')
+  .replace('<section id="our-home"', film + '\n<section id="our-home"')
+  .replace('<link rel="stylesheet"', '<script>document.documentElement.classList.add("arrival-pending");setTimeout(()=>document.documentElement.classList.remove("arrival-pending"),8000);</script><link rel="stylesheet"');
+await writeFile(file, outputHtml);
 await copyFile(require.resolve('lucide-react/LICENSE'), path.join(root, 'dist/assets/Lucide-LICENSE.txt')).catch(()=>{});
 console.log('Redesigned markup, consistent Lucide symbols, and cinematic landscape prepared.');
