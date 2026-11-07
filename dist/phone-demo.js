@@ -1,4 +1,5 @@
 import { demoFrame } from './show-clock.js';
+import { exampleReply } from './demo-replies.js';
 
 const OUTCOMES = ['all-outcomes','active','completed','unfinished'];
 const CONCERNS = {overflow:'Garbage Overflow',dumping:'Illegal Dumping',missed:'Missed Collection',other:'Other'};
@@ -21,8 +22,7 @@ export class PhoneDemo {
       const navigation=event.target.closest('[data-demo-goto]');
       if(navigation){
         this.onInteract();this.hidePointer();
-        if(navigation.dataset.demoGoto==='you')this.setFeature('you');
-        else this.onNavigate(navigation.dataset.demoGoto);
+        this.onNavigate(navigation.dataset.demoGoto);
         if(navigation.hasAttribute('data-open-scan'))this.setAssistMode('scan');
         return;
       }
@@ -35,24 +35,44 @@ export class PhoneDemo {
       if(event.target.id==='demo-report-text')this.updateCount();
       if(event.target.id==='demo-event-search')this.filterEvents(this.eventFilter);
     });
-    root.addEventListener('keydown',event=>{if(event.key==='Escape'){this.showSchedule(false);this.find('.demo-info-sheet').hidden=true;}});
+    root.addEventListener('keydown',event=>{if(event.key==='Escape'){this.showSchedule(false);this.find('.demo-info-sheet').hidden=true;this.find('.demo-timeline-sheet').hidden=true;}});
+    this.find('#demo-chat-form').addEventListener('submit',event=>{
+      event.preventDefault();const input=this.find('#demo-chat-input'),question=input.value.trim();
+      if(!question){input.focus();return;}
+      this.onInteract();this.hidePointer();this.ask(question);input.value='';
+    });
     this.setFeature('collections');
   }
   find(selector){return this.root.querySelector(selector);}
   all(selector){return [...this.root.querySelectorAll(selector)];}
   later(fn,delay){const timer=setTimeout(fn,delay);this.timers.push(timer);return timer;}
   clearTimers(){this.timers.forEach(clearTimeout);this.timers=[];}
-  setFeature(key){
+  setFeature(key,{preserve=false}={}){
+    if(preserve){
+      this.key=key;this.hidePointer();this.showSchedule(false);
+      this.find('.demo-info-sheet').hidden=true;this.find('.demo-timeline-sheet').hidden=true;
+      this.switchScreen(key);return;
+    }
     this.clearTimers();this.key=key;this.step=-1;this.lastText='';this.joined=false;this.attachment=false;this.location=false;
-    this.all('[data-demo-screen]').forEach(screen=>{screen.hidden=screen.dataset.demoScreen!==key;screen.scrollTop=0;});
-    this.all('.demo-bottom-nav [data-demo-goto]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.demoGoto===key)));
-    this.all('.demo-schedule,.demo-scanning-beam,.demo-scan-result,.demo-scan-question,.demo-chat-conversation,.demo-review-sheet,.demo-report-complete,.demo-event-details,.demo-event-joined,.demo-info-sheet,#demo-report-hint').forEach(element=>element.hidden=true);
+    this.all('[data-demo-screen]').forEach(screen=>screen.scrollTop=0);this.switchScreen(key,false);
+    this.all('.demo-schedule,.demo-scanning-beam,.demo-scan-result,.demo-scan-question,.demo-chat-conversation,.demo-review-sheet,.demo-report-complete,.demo-event-details,.demo-event-joined,.demo-info-sheet,.demo-timeline-sheet,#demo-report-hint').forEach(element=>element.hidden=true);
     this.find('.demo-chat-welcome').hidden=false;
     this.find('#demo-report-text').value='';this.updateCount();
     this.find('#demo-event-search').value='';
+    this.find('#demo-chat-input').value='';this.find('.demo-chat-compose button').disabled=false;
     this.selectConcern('overflow');this.filterSchedule('all-outcomes');this.setAssistMode('chat');this.setScanState(false,false);
     this.setAttachment(false);this.setLocation(false);this.showEventDetails(false);this.showJoined(false);this.filterEvents('upcoming');
     this.showSchedule(false);this.hidePointer();
+  }
+  switchScreen(key,animate=true){
+    const old=this.find('[data-demo-screen]:not([hidden])');
+    this.all('[data-demo-screen]').forEach(screen=>screen.hidden=screen.dataset.demoScreen!==key);
+    this.all('.demo-bottom-nav [data-demo-goto]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.demoGoto===key)));
+    const screen=this.find(`[data-demo-screen="${key}"]`);
+    if(animate&&old!==screen&&this.canAnimate()){
+      this.screenAnimation?.cancel();
+      this.screenAnimation=screen.animate([{opacity:.25,transform:'translateX(12px)'},{opacity:1,transform:'translateX(0)'}],{duration:280,easing:'cubic-bezier(.2,.7,.2,1)'});
+    }
   }
   showSchedule(show){this.find('.demo-schedule').hidden=!show;this.find('[data-demo-action="schedule"]').setAttribute('aria-expanded',String(show));}
   filterSchedule(outcome){
@@ -72,7 +92,19 @@ export class PhoneDemo {
     this.find('.demo-chat-panel').hidden=mode!=='chat';this.find('.demo-scan-panel').hidden=mode!=='scan';
     for(const value of ['chat','scan']){const button=this.find(`[data-demo-action="${value}-tab"]`);button.classList.toggle('active',value===mode);button.setAttribute('aria-pressed',String(value===mode));}
   }
-  showAnswer(){this.setAssistMode('chat');this.find('.demo-chat-welcome').hidden=true;this.find('.demo-chat-conversation').hidden=false;this.find('[data-demo-screen="assist"]').scrollTop=0;}
+  showAnswer(question='Can I recycle this plastic bottle?'){
+    this.setAssistMode('chat');this.find('.demo-chat-welcome').hidden=true;this.find('.demo-chat-conversation').hidden=false;
+    const reply=exampleReply(question);this.find('.demo-chat-user').textContent=question;
+    this.find('#demo-chat-answer-title').textContent=reply.title;this.find('#demo-chat-answer-text').textContent=reply.text;
+    this.find('.demo-answer').classList.remove('is-thinking');this.find('[data-demo-screen="assist"]').scrollTop=0;
+  }
+  ask(question){
+    clearTimeout(this.chatTimer);this.showAnswer(question);
+    const title=this.find('#demo-chat-answer-title'),body=this.find('#demo-chat-answer-text');
+    if(!this.canAnimate())return;
+    title.textContent='A little thought…';body.textContent='';this.find('.demo-answer').classList.add('is-thinking');
+    this.chatTimer=this.later(()=>this.showAnswer(question),650);
+  }
   render(elapsed){
     if(this.key==='you')return;
     const frame=demoFrame(this.key,elapsed);
@@ -122,7 +154,7 @@ export class PhoneDemo {
     else if(action==='scan'){
       this.clearTimers();this.setScanState(true,false);this.find('.demo-scan-window').style.setProperty('--scan-progress','.5');
       this.later(()=>{this.setScanState(false,true);this.scrollWithin(this.find('.demo-scan-result'));},this.canAnimate()?1600:0);
-    }else if(action==='ask')this.showAnswer();
+    }else if(action==='ask')this.ask('Can I recycle this plastic bottle?');
     else if(CONCERNS[action])this.selectConcern(action);
     else if(action==='attachment')this.setAttachment(!this.attachment);
     else if(action==='location')this.setLocation(!this.location);
@@ -131,6 +163,12 @@ export class PhoneDemo {
       if(!text){this.find('#demo-report-hint').hidden=false;this.find('#demo-report-text').focus();return;}
       this.find('#demo-review-description').textContent=text;this.find('.demo-review-sheet').hidden=false;this.find('[data-demo-screen="reports"]').scrollTop=0;
     }else if(action==='finish'){this.find('.demo-review-sheet').hidden=true;this.find('.demo-report-complete').hidden=false;}
+    else if(action==='timeline')this.find('.demo-timeline-sheet').hidden=false;
+    else if(action==='close-timeline')this.find('.demo-timeline-sheet').hidden=true;
+    else if(action==='new-report'){
+      this.find('.demo-report-complete').hidden=true;this.find('#demo-report-text').value='';this.updateCount();
+      this.setAttachment(false);this.setLocation(false);this.selectConcern('overflow');this.find('[data-demo-screen="reports"]').scrollTop=0;
+    }
     else if(action==='edit-report')this.find('.demo-review-sheet').hidden=true;
     else if(action==='details'){this.showEventDetails(this.find('.demo-event-details').hidden);this.scrollWithin(this.find('.demo-event-actions'));}
     else if(action==='join'){this.showJoined(true);this.scrollWithin(this.find('.demo-event-joined'));}
@@ -155,5 +193,5 @@ export class PhoneDemo {
     },this.canAnimate()?200:0);
   }
   hidePointer(){clearTimeout(this.pointerTimer);this.find('.demo-pointer').hidden=true;}
-  destroy(){this.clearTimers();}
+  destroy(){this.clearTimers();this.screenAnimation?.cancel();}
 }

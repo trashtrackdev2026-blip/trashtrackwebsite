@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
-import { readFile, writeFile, copyFile, mkdir } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { copyFile, mkdir } from 'node:fs/promises';
+import { prepareDownload } from './prepare-download.mjs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -25,27 +25,5 @@ await Promise.all(jobs.map(async ([source, name, width, quality]) => {
 await copyFile(path.join(workspace, 'trashtrack-web/src/app/fonts/Outfit-Latin.woff2'), path.join(assets, 'outfit.woff2'));
 await copyFile(path.join(workspace, 'output/soft-world-ui/Outfit-OFL.txt'), path.join(assets, 'Outfit-OFL.txt'));
 
-// Small parts keep the existing APK within static-host per-file limits.
-// The browser verifies and reassembles the exact original APK before saving it.
-const apk = await readFile(path.join(workspace, 'output/TrashTrack-Soft-World.apk'));
-const downloadDir = path.join(root, 'dist/downloads');
-await mkdir(downloadDir, { recursive: true });
-const chunkSize = 16 * 1024 * 1024;
-const parts = [];
-for (let offset = 0; offset < apk.length; offset += chunkSize) {
-  const name = `trashtrack-${parts.length + 1}.bin`;
-  const buffer = apk.subarray(offset, Math.min(offset + chunkSize, apk.length));
-  await writeFile(path.join(downloadDir, name), buffer);
-  parts.push({ url: `downloads/${name}`, bytes: buffer.length });
-}
-const manifest = {
-  filename: 'TrashTrack-Soft-World-preview.apk',
-  version: '1.0.2',
-  channel: 'Android preview build',
-  minAndroid: '7.0',
-  bytes: apk.length,
-  sha256: createHash('sha256').update(apk).digest('hex'),
-  parts,
-};
-await writeFile(path.join(downloadDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-console.log(JSON.stringify({ images: jobs.length, apkBytes: apk.length, apkParts: parts.length, sha256: manifest.sha256 }));
+await prepareDownload();
+console.log(JSON.stringify({ images: jobs.length }));

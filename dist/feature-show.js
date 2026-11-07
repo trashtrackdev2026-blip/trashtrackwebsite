@@ -14,13 +14,17 @@ export function startFeatureShow({ paused=false, enableMotion }) {
   const tabs=[...film.querySelectorAll('.feature-tab')];
   const clock=new ShowClock();
   const reasons=new Set();
-  let motionPaused=paused, visible=false, raf=0, transition=0, destroyed=false;
+  let motionPaused=paused, visible=false, raf=0, transition=0, destroyed=false, exploring=false;
   let animations=[];
   if(paused)reasons.add('motion');
   const phone=new PhoneDemo($('#live-demo'),{
     canAnimate:()=>!motionPaused,
-    onInteract:()=>pause('manual'),
-    onNavigate:key=>select(key,{manual:true}),
+    onInteract:()=>explore(),
+    onNavigate:key=>{
+      if(key==='you'){
+        explore();phone.setFeature('you',{preserve:true});$('#demo-feature-name').textContent='Your little corner';
+      }else select(key,{manual:true});
+    },
   });
   document.documentElement.classList.remove('feature-film-ready');
   film.classList.add('automatic-show');
@@ -30,18 +34,32 @@ export function startFeatureShow({ paused=false, enableMotion }) {
   function updateControls(){
     const stopped=reasons.size>0;
     $('#show-toggle').setAttribute('aria-pressed',String(stopped));
-    $('#show-toggle-label').textContent=stopped?'Play demo':'Pause demo';
+    $('#show-toggle-label').textContent=stopped?'Continue tour':'Pause tour';
     $('#show-toggle use').setAttribute('href',stopped?'#i-play':'#i-pause');
-    $('#show-status').textContent=motionPaused?'Motion paused':stopped?'Paused · try the phone':'Playing automatically';
+    $('#show-status').textContent=motionPaused?'Motion paused':exploring?'You’re in control':stopped?'Tour paused':'Playing automatically';
     film.dataset.playing=String(!stopped);
+    film.dataset.mode=exploring?'explore':'tour';
+    $('#show-tour').classList.toggle('active',!exploring);$('#show-tour').setAttribute('aria-pressed',String(!exploring));
+    $('#show-explore').classList.toggle('active',exploring);$('#show-explore').setAttribute('aria-pressed',String(exploring));
+    $('#demo-explore-hint').textContent=exploring?'Try all five tabs. Your changes stay as you explore.':'Sit back, or tap the phone and make it yours.';
   }
   function pause(reason){reasons.add(reason);clock.suspend();phone.hidePointer();cancelAnimationFrame(raf);raf=0;updateControls();}
+  function explore({focus=false}={}){
+    if(!exploring){
+      ++transition;animations.forEach(animation=>animation.cancel());animations=[];
+      const displayed=FEATURE_ORDER.indexOf(film.dataset.scene);if(displayed>=0)clock.select(displayed);
+    }
+    exploring=true;pause('manual');
+    if(focus)$('#live-demo .demo-bottom-nav [aria-pressed="true"]').focus({preventScroll:true});
+  }
   function resume(){
+    ++transition;animations.forEach(animation=>animation.cancel());animations=[];
+    exploring=false;
     if(motionPaused)enableMotion();
     reasons.delete('manual');reasons.delete('keyboard');reasons.delete('focus');
     clock.select(clock.index);render(clock.index);updateControls();schedule();
   }
-  function render(index){
+  function render(index,{preserve=false}={}){
     const key=FEATURE_ORDER[index],data=FEATURES[key];
     film.dataset.scene=key;
     tabs.forEach(tab=>{const active=tab.dataset.feature===key;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});
@@ -52,17 +70,17 @@ export function startFeatureShow({ paused=false, enableMotion }) {
     $('#feature-number').textContent=`0${index+1} / 04`;
     $('#film-token-primary').setAttribute('href',`#i-${data.icon}`);$('#film-token-secondary').setAttribute('href',`#i-${data.secondary}`);
     $('#demo-feature-name').textContent=tabs[index].querySelector('strong').textContent;
-    phone.setFeature(key);phone.render(0);film.style.setProperty('--show-scene-progress','0');
+    phone.setFeature(key,{preserve});if(!preserve)phone.render(0);film.style.setProperty('--show-scene-progress','0');
   }
-  function animateTo(index,{instant=false}={}){
+  function animateTo(index,{instant=false,preserve=false}={}){
     const generation=++transition;
     animations.forEach(animation=>animation.cancel());animations=[];
     const targets=[$('.film-copy'),$('.demo-device-stage')];
-    if(instant||motionPaused||!visible){render(index);return;}
+    if(instant||motionPaused||!visible){render(index,{preserve});return;}
     animations=targets.map(target=>target.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-9px)'}],{duration:220,easing:'ease-in',fill:'forwards'}));
     Promise.all(animations.map(animation=>animation.finished)).then(()=>{
       if(generation!==transition||destroyed)return;
-      animations.forEach(animation=>animation.cancel());render(index);
+      animations.forEach(animation=>animation.cancel());render(index,{preserve});
       animations=targets.map(target=>target.animate([{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}],{duration:460,easing:'cubic-bezier(.22,1,.36,1)'}));
     }).catch(()=>{});
   }
@@ -78,9 +96,9 @@ export function startFeatureShow({ paused=false, enableMotion }) {
   function schedule(){if(running()&&!raf){clock.suspend();raf=requestAnimationFrame(frame);}}
   function select(key,{manual=false,scroll=false,keyboard=false}={}){
     const index=FEATURE_ORDER.indexOf(key);if(index<0)return;
-    if(manual)pause('manual');else{reasons.delete('manual');reasons.delete('keyboard');}
+    if(manual)explore();else{exploring=false;reasons.delete('manual');reasons.delete('keyboard');}
     if(keyboard)pause('keyboard');
-    clock.select(index);animateTo(index,{instant:manual||keyboard});updateControls();
+    clock.select(index);animateTo(index,{instant:manual||keyboard,preserve:manual});updateControls();
     if(scroll)film.scrollIntoView({behavior:motionPaused?'instant':'smooth',block:'start'});
     schedule();
   }
@@ -95,6 +113,8 @@ export function startFeatureShow({ paused=false, enableMotion }) {
   });
   $('#show-toggle').addEventListener('click',()=>reasons.size?resume():pause('manual'));
   $('#show-replay').addEventListener('click',resume);
+  $('#show-tour').addEventListener('click',resume);
+  $('#show-explore').addEventListener('click',()=>explore({focus:true}));
   $('#live-demo').addEventListener('focusin',()=>pause('focus'));
   $('#live-demo').addEventListener('focusout',event=>{if(!$('#live-demo').contains(event.relatedTarget)){reasons.delete('focus');updateControls();schedule();}});
   const observer=new IntersectionObserver(entries=>{

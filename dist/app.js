@@ -56,7 +56,10 @@ function closeIntro() {
   document.body.classList.remove('intro-active');
   featureShow?.setArrival(false);
   root.classList.remove('arrival-pending');
-  if (automaticArrival && (!location.hash || location.hash === '#home')) window.scrollTo({ top: 0, behavior: 'instant' });
+  if (automaticArrival) {
+    if (!location.hash || location.hash === '#home') window.scrollTo({ top: 0, behavior: 'instant' });
+    else document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
   if (introReturnFocus?.isConnected) introReturnFocus.focus({ preventScroll: true });
   else $('.site-header .brand').focus({ preventScroll: true });
   setTimeout(() => { if (!introOpen) intro.hidden = true; }, paused ? 0 : 800);

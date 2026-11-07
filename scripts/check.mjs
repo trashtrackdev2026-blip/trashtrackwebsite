@@ -35,7 +35,12 @@ for (const part of manifest.parts) {
 }
 assert.equal(bytes, manifest.bytes);
 assert.equal(hash.digest('hex'), manifest.sha256);
-assert.equal(manifest.sha256, '5b5560bab0d8172f37c46f125a401f3fb7d1d99c635fc31062b333efc1091c8f');
+const release = JSON.parse(await readFile(path.join(root, 'android-release.json'), 'utf8'));
+assert.equal(manifest.sha256, release.sha256);
+assert.equal(manifest.bytes, release.bytes);
+assert.equal(manifest.version, release.version);
+assert.equal(manifest.filename, release.filename);
+assert(html.includes(`Version ${release.version}`), 'Display the current Android version');
 const hosting = JSON.parse(await readFile(path.join(root, '.openai/hosting.json'), 'utf8'));
 assert.equal(hosting.static.directory, 'dist');
 console.log(JSON.stringify({ result: 'passed', htmlIds: ids.length, apkBytes: bytes, downloadParts: manifest.parts.length, sha256: manifest.sha256, checks: ['asset references', 'anchor targets', 'unique ids', 'JavaScript syntax', 'motion support', 'APK integrity', 'hosting manifest'] }));
