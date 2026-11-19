@@ -5,6 +5,7 @@ import { parseHTML } from 'linkedom';
 
 test('the preview animates with system motion off, lands on the hero, and guides installation', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+  const release = JSON.parse(await readFile(new URL('../android-release.json', import.meta.url), 'utf8'));
   const { document, window } = parseHTML(html);
   const url = new URL('http://127.0.0.1:4318/?preview=1#inside');
   const timers = new Map();
@@ -70,7 +71,7 @@ test('the preview animates with system motion off, lands on the hero, and guides
     assert.equal(dialog.hasAttribute('open'), true);
     assert.equal($('#install-download').hidden, false);
     assert.equal($('#install-play span').textContent, 'Stop walkthrough');
-    assert.match($('#dialog-title').parentElement.textContent, /Version 1\.0\.15/);
+    assert.ok($('#dialog-title').parentElement.textContent.includes(`Version ${release.version}`));
     click('#install-next');
     assert.equal($('#install-download').hidden, true);
     assert.equal($('#install-open').hidden, false);
