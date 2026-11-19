@@ -51,14 +51,22 @@ test('tour reset clears interactive records and the scan continues to a readable
   assert.equal(root.querySelector('.demo-chat-conversation').hidden,false);assert.match(root.querySelector('#demo-chat-answer-text').textContent,/Empty the bottle/);
   assert.equal(root.querySelector('#demo-report-text').value,'');assert.equal(phone.joined,false);phone.destroy();
 });
-test('explore mode retains drafts through the full feature controller, and tour restarts cleanly',()=>{
+test('the tour starts automatically, pauses for interaction and resumes when the phone re-enters view',()=>{
   const {document,window}=setup({initialize:false});
   globalThis.document=document;globalThis.requestAnimationFrame=()=>1;globalThis.cancelAnimationFrame=()=>{};
-  globalThis.IntersectionObserver=class{observe(){}disconnect(){}};
-  const show=startFeatureShow({paused:true,enableMotion(){show.setMotion(false);}});
+  let observe;
+  globalThis.IntersectionObserver=class{constructor(callback){observe=callback;}observe(){}disconnect(){}};
+  const show=startFeatureShow({});
   const click=selector=>document.querySelector(selector).dispatchEvent(new window.Event('click',{bubbles:true}));
-  click('#show-explore');assert.equal(document.querySelector('[data-feature-film]').dataset.mode,'explore');
+  const film=document.querySelector('[data-feature-film]');
+  observe([{intersectionRatio:.75,isIntersecting:true}]);
+  assert.equal(film.dataset.playing,'true');
   click('.demo-bottom-nav [data-demo-goto="reports"]');document.querySelector('#demo-report-text').value='Saved while exploring';
+  assert.equal(film.dataset.mode,'explore');
+  assert.equal(film.dataset.playing,'false');
   click('.demo-bottom-nav [data-demo-goto="collections"]');click('.demo-bottom-nav [data-demo-goto="reports"]');assert.equal(document.querySelector('#demo-report-text').value,'Saved while exploring');
-  click('#show-tour');assert.equal(document.querySelector('[data-feature-film]').dataset.mode,'tour');assert.equal(document.querySelector('#demo-report-text').value,'');show.destroy();
+  observe([{intersectionRatio:0,isIntersecting:false}]);
+  observe([{intersectionRatio:.75,isIntersecting:true}]);
+  assert.equal(film.dataset.mode,'tour');assert.equal(film.dataset.playing,'true');
+  assert.equal(document.querySelector('#demo-report-text').value,'');show.destroy();
 });

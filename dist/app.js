@@ -4,96 +4,84 @@ const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
 const root = document.documentElement;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const localPreview = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
 let featureShow = null;
-const storage = {
-  get(key, session = false) { try { return (session ? sessionStorage : localStorage).getItem(key); } catch { return null; } },
-  set(key, value, session = false) { try { (session ? sessionStorage : localStorage).setItem(key, value); } catch { /* Storage is optional. */ } },
-};
-
-// A single preference controls decorative motion; system reduced motion takes priority.
-let paused = storage.get('trashtrack-motion') === 'playing' ? false : reducedMotion.matches || storage.get('trashtrack-motion') === 'paused';
+let paused = !localPreview && reducedMotion.matches;
 function syncMotion() {
   root.classList.toggle('motion-paused', paused);
   root.classList.toggle('motion-enabled', !paused);
-  $('#motion-toggle').setAttribute('aria-pressed', String(paused));
-  $('#motion-toggle span').textContent = paused ? 'Enable motion' : 'Pause motion';
-  $('#motion-toggle use').setAttribute('href', paused ? '#i-play' : '#i-pause');
   featureShow?.setMotion(paused);
 }
 syncMotion();
-$('#motion-toggle').addEventListener('click', () => {
-  paused = !paused;
-  storage.set('trashtrack-motion', paused ? 'paused' : 'playing');
-  syncMotion();
-  requestUpdate();
-});
 reducedMotion.addEventListener('change', () => {
-  paused = storage.get('trashtrack-motion') === 'playing' ? false : reducedMotion.matches || storage.get('trashtrack-motion') === 'paused';
+  if (localPreview) return;
+  paused = reducedMotion.matches;
   syncMotion();
   if (paused) closeIntro();
+  requestUpdate();
 });
 
 // A short, cancellable opening with a keyboard-safe skip action.
 const intro = $('#intro');
+const introActions = [$('#skip-intro'), $('#explore-intro')];
+const truckTravel = $('#arrival-travel');
+const arrivalDuration = 4200;
+intro.style.setProperty('--arrival-duration', `${arrivalDuration}ms`);
 let introTimers = [];
-let introReturnFocus;
 let introOpen = false;
 let introGeneration = 0;
-let automaticArrival = false;
+let materializeTimer;
+function clearMaterialization() {
+  clearTimeout(materializeTimer);
+  document.body.classList.remove('landing-materializing');
+}
 function later(callback, delay) {
   const timer = setTimeout(callback, delay);
   introTimers.push(timer);
   return timer;
 }
-function closeIntro() {
+function showLandingTop() {
+  if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+function closeIntro({ skip = false } = {}) {
   if (!introOpen) return;
   introOpen = false;
-  introGeneration++;
+  const generation = ++introGeneration;
   introTimers.forEach(clearTimeout);
   introTimers = [];
+  const materialize = !paused && !skip;
+  if (materialize) {
+    document.body.classList.add('landing-materializing');
+    materializeTimer = setTimeout(clearMaterialization, 2040);
+  }
   intro.classList.add('departing');
+  intro.inert = true;
   $('#site-content').inert = false;
   document.body.classList.remove('intro-active');
   featureShow?.setArrival(false);
   root.classList.remove('arrival-pending');
-  if (automaticArrival) {
-    if (!location.hash || location.hash === '#home') window.scrollTo({ top: 0, behavior: 'instant' });
-    else document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start', behavior: 'instant' });
-  }
-  if (introReturnFocus?.isConnected) introReturnFocus.focus({ preventScroll: true });
-  else $('.site-header .brand').focus({ preventScroll: true });
-  setTimeout(() => { if (!introOpen) intro.hidden = true; }, paused ? 0 : 800);
+  showLandingTop();
+  $('#hero-title').focus({ preventScroll: true });
+  requestUpdate();
+  setTimeout(() => { if (generation === introGeneration) intro.hidden = true; }, paused ? 0 : materialize ? 720 : 540);
 }
-function showIntro(replay = false) {
+function showIntro() {
+  clearMaterialization();
   introTimers.forEach(clearTimeout);
   introTimers = [];
   const generation = ++introGeneration;
-  introReturnFocus = replay ? document.activeElement : null;
-  automaticArrival = !replay;
   introOpen = true;
   intro.hidden = false;
-  intro.classList.remove('departing', 'is-running');
-  // Restart only the opening scene's animations when replaying.
-  if (replay) {
-    $$('.intro-scene, .intro-truck, .intro-loading', intro).forEach(element => {
-      element.style.animation = 'none';
-      void element.offsetWidth;
-      element.style.animation = '';
-    });
-  }
+  intro.inert = false;
+  intro.classList.remove('departing', 'is-running', 'route-running');
   $('#site-content').inert = true;
   document.body.classList.add('intro-active');
   featureShow?.setArrival(true);
   root.classList.remove('arrival-pending');
-  $('#typed-intro').textContent = '';
-  $('#intro-line').classList.remove('visible');
-  $('#intro-progress').textContent = '01 / 03';
-  $('#skip-intro').focus({ preventScroll: true });
-  const message = 'Welcome to Balete.';
+  introActions[0].focus({ preventScroll: true });
   if (paused) {
-    $('#typed-intro').textContent = message;
-    $('#intro-line').classList.add('visible');
-    later(closeIntro, 1400);
+    later(closeIntro, 1800);
     return;
   }
   let started = false;
@@ -101,81 +89,92 @@ function showIntro(replay = false) {
     if (started || !introOpen || generation !== introGeneration) return;
     started = true;
     intro.classList.add('is-running');
-    [...message].forEach((character, index) => later(() => {
-      $('#typed-intro').textContent += character;
-    }, 350 + index * 77));
-    later(() => { $('#intro-progress').textContent = '02 / 03'; }, 1400);
-    later(() => { $('#intro-line').classList.add('visible'); }, 1950);
-    later(() => { $('#intro-progress').textContent = '03 / 03'; }, 3000);
-    later(closeIntro, 4200);
+    if (typeof truckTravel?.beginElement === 'function') {
+      truckTravel.setAttribute('dur', `${arrivalDuration}ms`);
+      intro.classList.add('route-running');
+      truckTravel.beginElement();
+    }
+    later(closeIntro, arrivalDuration);
   }
   const backdrop = new Image();
   backdrop.src = 'assets/balete-cinematic.webp';
   if (backdrop.complete && backdrop.naturalWidth) begin();
   else { backdrop.decode().then(begin, begin); later(begin, 1100); }
 }
-$('#skip-intro').addEventListener('click', closeIntro);
-function replayArrival() {
-  if (paused) { paused = false; storage.set('trashtrack-motion', 'playing'); syncMotion(); }
-  showIntro(true);
-  layoutRoads();
-}
-$('#replay-intro').addEventListener('click', replayArrival);
-$$('[data-replay]').forEach(button => button.addEventListener('click', replayArrival));
+introActions[0].addEventListener('click', () => closeIntro({ skip: true }));
+introActions[1].addEventListener('click', () => closeIntro());
 document.addEventListener('keydown', event => {
   if (!introOpen) return;
-  if (event.key === 'Escape') closeIntro();
-  if (event.key === 'Tab') { event.preventDefault(); $('#skip-intro').focus(); }
+  if (event.key === 'Escape') { event.preventDefault(); closeIntro({ skip: true }); }
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    const current = introActions.indexOf(document.activeElement);
+    const next = current === -1 ? (event.shiftKey ? 1 : 0) : 1 - current;
+    introActions[next].focus({ preventScroll: true });
+  }
 });
 
-// The SVG roads scale with their containers, including on small phones.
-function layoutRoads() {
-  const heroRoad = $('.hero-road');
-  const w = heroRoad.clientWidth / 1440;
-  const h = heroRoad.clientHeight / 210;
-  $('.hero-truck').style.offsetPath = `path('M${-80*w} ${170*h}C${220*w} ${220*h} ${295*w} ${38*h} ${620*w} ${94*h}S${1090*w} ${224*h} ${1510*w} ${83*h}')`;
-  $('.hero-truck').style.offsetAnchor = '50% 100%';
-  const introRoad = $('.intro-road');
-  // Hidden intros have no box; the replay calls this after making them visible.
-  const iw = (introRoad.clientWidth || innerWidth * 1.1) / 1440;
-  const ih = (introRoad.clientHeight || 190) / 190;
-  $('.intro-truck').style.offsetPath = `path('M${-100*iw} ${180*ih}C${200*iw} ${210*ih} ${260*iw} ${40*ih} ${650*iw} ${103*ih}S${1080*iw} ${210*ih} ${1540*iw} ${40*ih}')`;
-  $('.intro-truck').style.offsetAnchor = '50% 100%';
-}
-
-// Passive input and a single animation frame keep parallax work bounded.
-let ticking = false;
-let pointerX = 0;
+// Measure on input and ease each layer toward its new position across frames.
+let sceneFrame = 0;
+let measureScene = true;
+let lastFrame = 0;
 let pointerY = 0;
-function updateScene() {
-  ticking = false;
-  const y = window.scrollY;
-  $('#header').classList.toggle('scrolled', y > 70);
-  if (paused) return;
-  const hero = $('.hero');
-  if (y < hero.offsetHeight + 100) {
-    hero.style.setProperty('--landscape-y', `${Math.min(y * .14, 110) + pointerY * 4}px`);
-    hero.style.setProperty('--phone-y', `${Math.min(y * .055, 45) + pointerY * -5}px`);
-    hero.style.setProperty('--foreground-y', `${Math.max(-y * .065, -65) + pointerY * -7}px`);
-    hero.style.setProperty('--road-y', `${Math.max(-y * .025, -25)}px`);
-    hero.style.setProperty('--atmosphere-x', `${pointerX * 5}px`);
+const hero = $('.landing-hero');
+const montage = $('.montage-scene');
+const journey = $('#journey');
+const header = $('#header');
+const layers = [
+  { element: hero, property: '--landscape-y', current: 0, target: 0 },
+  { element: hero, property: '--phone-y', current: 0, target: 0 },
+  { element: montage, property: '--montage-panorama-y', current: 0, target: 0 },
+  { element: montage, property: '--montage-leaves-y', current: 0, target: 0 },
+];
+function measureParallax() {
+  const y = Math.max(0, window.scrollY);
+  const journeyRect = journey.getBoundingClientRect();
+  const scene = montage.getBoundingClientRect();
+  const depth = Math.max(0, Math.min(1, (innerHeight - scene.top) / (innerHeight + scene.height))) - .5;
+  header.classList.toggle('scrolled', y > 70);
+  if (!paused) {
+    layers[0].target = Math.min(y * .10, 72) + pointerY * 3;
+    layers[1].target = Math.min(y * .047, 32) - pointerY * 4;
+    layers[2].target = depth * 86;
+    layers[3].target = depth * -115;
+    const progress = Math.max(0, Math.min(1, (innerHeight - journeyRect.top) / (innerHeight + journeyRect.height)));
+    journey.style.setProperty('--journey-progress', String(progress));
   }
-  const journeyRect = $('#journey').getBoundingClientRect();
-  const progress = Math.max(0, Math.min(1, (innerHeight - journeyRect.top) / (innerHeight + journeyRect.height)));
-  $('#journey').style.setProperty('--journey-progress', String(progress));
+}
+function updateScene(timestamp) {
+  sceneFrame = 0;
+  if (document.hidden) { lastFrame = 0; return; }
+  if (measureScene) { measureScene = false; measureParallax(); }
+  const elapsed = lastFrame ? Math.min(timestamp - lastFrame, 50) : 16;
+  const amount = 1 - Math.exp(-elapsed / 90);
+  let moving = false;
+  for (const layer of layers) {
+    const target = paused ? 0 : layer.target;
+    const distance = target - layer.current;
+    if (distance) {
+      layer.current = paused || Math.abs(distance) < .1 ? target : layer.current + distance * amount;
+      layer.element.style.setProperty(layer.property, `${layer.current.toFixed(2)}px`);
+      moving ||= layer.current !== target;
+    }
+  }
+  lastFrame = moving ? timestamp : 0;
+  if (moving) sceneFrame = requestAnimationFrame(updateScene);
 }
 function requestUpdate() {
-  if (!ticking) { ticking = true; requestAnimationFrame(updateScene); }
+  measureScene = true;
+  if (!sceneFrame) sceneFrame = requestAnimationFrame(updateScene);
 }
 addEventListener('scroll', requestUpdate, { passive: true });
-addEventListener('resize', () => { layoutRoads(); requestUpdate(); }, { passive: true });
+addEventListener('resize', requestUpdate, { passive: true });
 if (matchMedia('(pointer: fine)').matches) {
-  $('.hero').addEventListener('pointermove', event => {
-    pointerX = (event.clientX / innerWidth - .5) * 2;
+  hero.addEventListener('pointermove', event => {
     pointerY = (event.clientY / innerHeight - .5) * 2;
     requestUpdate();
   }, { passive: true });
-  $('.hero').addEventListener('pointerleave', () => { pointerX = pointerY = 0; requestUpdate(); });
+  hero.addEventListener('pointerleave', () => { pointerY = 0; requestUpdate(); });
 }
 document.addEventListener('visibilitychange', () => {
   root.classList.toggle('tab-inactive', document.hidden);
@@ -183,7 +182,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Content remains visible if observation is unsupported or motion is reduced.
-if ('IntersectionObserver' in window && !reducedMotion.matches) {
+if ('IntersectionObserver' in window && !paused) {
   root.classList.add('js-reveals');
   const observer = new IntersectionObserver(entries => {
     for (const entry of entries) if (entry.isIntersecting) {
@@ -192,6 +191,17 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
     }
   }, { threshold: .08, rootMargin: '0px 0px -20px 0px' });
   $$('.reveal').forEach(element => observer.observe(element));
+}
+
+// Animate visible headings on entry. Keep the copy visible when motion is off
+// or observation is unavailable.
+if ('IntersectionObserver' in window) {
+  const textObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      entry.target.classList.toggle('motion-visible', entry.isIntersecting);
+    }
+  }, { threshold: 0, rootMargin: '0px 0px -18px 0px' });
+  $$('[data-motion-reveal]').forEach(element => textObserver.observe(element));
 }
 
 // Responsive navigation also closes after selecting an anchor or pressing Escape.
@@ -210,10 +220,7 @@ document.addEventListener('keydown', event => {
 matchMedia('(min-width: 641px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
 
 // Automatic demonstrations advance by time, independently of scrolling.
-featureShow = startFeatureShow({
-  paused,
-  enableMotion() { paused = false; storage.set('trashtrack-motion','playing'); syncMotion(); requestUpdate(); },
-});
+featureShow = startFeatureShow({ paused });
 $$('[data-feature-link]').forEach(link => link.addEventListener('click',event=>{
   event.preventDefault();featureShow.select(link.dataset.featureLink,{scroll:true});
 }));
@@ -251,7 +258,141 @@ $$('.bin-choice').forEach(button => button.addEventListener('click', () => {
 
 // Native dialogs supply focus trapping and Escape support.
 const downloadDialog = $('#download-dialog');
-$$('.download-open').forEach(button => button.addEventListener('click', () => downloadDialog.showModal()));
+const stepButtons = $$('[data-install-step]', downloadDialog);
+const stepPanels = stepButtons.map(button => document.getElementById(button.getAttribute('aria-controls')));
+const previousStep = $('#install-previous');
+const nextStep = $('#install-next');
+const playInstall = $('#install-play');
+const installDevice = $('.install-device', downloadDialog);
+const installScreens = $$('[data-install-screen]', installDevice);
+const previewActions = installScreens.map(screen => $('[data-preview-action]', screen));
+const previewMessages = installScreens.map(screen => $('.install-phone-feedback', screen));
+const installer = $('.install-phone-installer', installDevice);
+const welcome = $('.install-phone-welcome', installDevice);
+const originalFilename = previewMessages[0].textContent;
+const finalInstallStep = stepPanels.length - 1;
+const walkthroughReadingTime = [3400, 2100, 5300, 2100];
+let installStep = 0;
+let previewPhase = 'ready';
+let walkthroughPlaying = false;
+let previewTimer;
+
+function showInstallPhone(phase) {
+  previewPhase = phase;
+  installDevice.dataset.previewPhase = phase;
+  const busy = phase === 'working';
+  const complete = phase === 'complete';
+  const action = previewActions[installStep];
+  const message = previewMessages[installStep];
+  action.setAttribute('aria-disabled', String(busy || (complete && installStep < 2)));
+  if (installStep === 0) {
+    action.textContent = busy ? 'Saving…' : complete ? 'APK downloaded' : 'Download APK';
+    message.textContent = complete ? 'Saved to Downloads' : originalFilename;
+  } else if (installStep === 1) {
+    message.textContent = complete ? 'APK opened' : '';
+  } else if (installStep === 2) {
+    action.setAttribute('aria-checked', String(complete));
+    message.textContent = complete ? 'Go back to the APK to continue.' : '';
+  } else {
+    action.textContent = busy ? 'Installing…' : complete ? 'Open' : 'Install';
+    message.textContent = complete ? 'App installed' : 'Install this app?';
+    installer.hidden = phase === 'welcome';
+    welcome.hidden = !installer.hidden;
+  }
+}
+
+function setWalkthroughPlaying(playing) {
+  clearTimeout(previewTimer);
+  walkthroughPlaying = playing;
+  $('span', playInstall).textContent = playing ? 'Stop walkthrough' : 'Play walkthrough';
+  $('use', playInstall).setAttribute('href', playing ? '#i-pause' : '#i-play');
+}
+
+function showInstallStep(index, moveFocus = false) {
+  installStep = index;
+  stepPanels.forEach((panel, step) => {
+    panel.hidden = step !== index;
+    installScreens[step].hidden = panel.hidden;
+    if (step === index) stepButtons[step].setAttribute('aria-current', 'step');
+    else stepButtons[step].removeAttribute('aria-current');
+  });
+  previousStep.hidden = index === 0;
+  nextStep.textContent = index === finalInstallStep ? 'Done' : 'Next';
+  $('#install-progress-label').textContent = `Step ${index + 1} of ${stepPanels.length}`;
+  showInstallPhone('ready');
+  if (moveFocus) $('h3', stepPanels[index]).focus();
+}
+
+function selectInstallStep(index, moveFocus = false) {
+  setWalkthroughPlaying(false);
+  showInstallStep(index, moveFocus);
+}
+
+function runInstallPreviewAction(after = () => {}) {
+  const complete = () => {
+    showInstallPhone('complete');
+    after();
+  };
+  if (installStep === 0 || installStep === finalInstallStep) {
+    showInstallPhone('working');
+    previewTimer = setTimeout(complete, paused ? 300 : 850);
+  } else {
+    complete();
+  }
+}
+
+function playInstallStep(index) {
+  showInstallStep(index);
+  previewTimer = setTimeout(() => runInstallPreviewAction(() => {
+    previewTimer = setTimeout(() => {
+      if (index < finalInstallStep) {
+        playInstallStep(index + 1);
+      } else {
+        showInstallPhone('welcome');
+        setWalkthroughPlaying(false);
+      }
+    }, walkthroughReadingTime[index]);
+  }), 950);
+}
+
+function startInstallWalkthrough() {
+  setWalkthroughPlaying(true);
+  playInstallStep(0);
+}
+
+playInstall.addEventListener('click', () => {
+  if (walkthroughPlaying) {
+    setWalkthroughPlaying(false);
+    if (previewPhase === 'working') showInstallPhone('ready');
+    return;
+  }
+  startInstallWalkthrough();
+  installDevice.scrollIntoView?.({ block: 'nearest', behavior: paused ? 'instant' : 'smooth' });
+});
+previewActions.forEach((action, index) => action.addEventListener('click', () => {
+  if (index !== installStep || action.getAttribute('aria-disabled') === 'true') return;
+  setWalkthroughPlaying(false);
+  if (previewPhase === 'complete') {
+    if (index === finalInstallStep) {
+      showInstallPhone('welcome');
+      $('#install-welcome-title').focus();
+    } else {
+      showInstallPhone('ready');
+    }
+  } else {
+    runInstallPreviewAction();
+  }
+}));
+$$('.download-open').forEach(button => button.addEventListener('click', () => {
+  downloadDialog.showModal();
+  startInstallWalkthrough();
+}));
+stepButtons.forEach((button, index) => button.addEventListener('click', () => selectInstallStep(index, true)));
+previousStep.addEventListener('click', () => selectInstallStep(installStep - 1, true));
+nextStep.addEventListener('click', () => {
+  if (installStep === finalInstallStep) downloadDialog.close();
+  else selectInstallStep(installStep + 1, true);
+});
 $$('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
 $$('dialog').forEach(dialog => dialog.addEventListener('click', event => {
   if (event.target === dialog) {
@@ -261,7 +402,7 @@ $$('dialog').forEach(dialog => dialog.addEventListener('click', event => {
 }));
 $('#privacy-open').addEventListener('click', () => $('#privacy-dialog').showModal());
 
-// Reassemble and verify the existing, unchanged preview build before saving.
+// Reassemble and verify the published Android build before saving.
 let downloadController;
 let downloadObjectUrl;
 let activeDownload = false;
@@ -271,6 +412,8 @@ function saveDownload() {
 }
 async function startDownload() {
   if (activeDownload) return;
+  setWalkthroughPlaying(false);
+  showInstallPhone('ready');
   if (downloadObjectUrl) { saveDownload(); return; }
   const start = $('#download-start');
   const status = $('#download-status');
@@ -283,8 +426,8 @@ async function startDownload() {
   downloadController = new AbortController();
   const { signal } = downloadController;
   try {
-    status.textContent = 'Preparing your Android preview…';
-    const response = await fetch('downloads/manifest.json', { signal });
+    status.textContent = 'Preparing the APK…';
+    const response = await fetch('downloads/manifest.json', { signal, cache: 'no-cache' });
     if (!response.ok) throw new Error('The download is temporarily unavailable. Please try again.');
     const manifest = await response.json();
     let received = 0;
@@ -318,7 +461,7 @@ async function startDownload() {
     link.download = manifest.filename;
     link.hidden = false;
     progress.value = 100;
-    status.textContent = 'Your verified APK is ready. Open the saved file on your Android phone to install. If it did not save, choose “Save APK again.”';
+    status.textContent = 'Your verified APK is ready. Choose Next for help opening the file.';
     $('#download-start span').textContent = 'Download again';
     saveDownload();
   } catch (error) {
@@ -332,22 +475,22 @@ async function startDownload() {
 }
 $('#download-start').addEventListener('click', startDownload);
 $('#download-cancel').addEventListener('click', () => downloadController?.abort());
-downloadDialog.addEventListener('close', () => { if (activeDownload) downloadController?.abort(); });
+downloadDialog.addEventListener('close', () => {
+  setWalkthroughPlaying(false);
+  if (activeDownload) downloadController?.abort();
+});
 addEventListener('pagehide', () => {
   downloadController?.abort();
   if (downloadObjectUrl) {
     URL.revokeObjectURL(downloadObjectUrl);
     downloadObjectUrl = null;
     $('#download-save').hidden = true;
-    $('#download-start span').textContent = 'Download Android preview';
+    $('#download-start span').textContent = 'Download APK';
   }
 });
 
-// Every full page opening gets the arrival; same-page anchors do not restart it.
-if (!location.hash || location.hash === '#home') {
-  history.scrollRestoration = 'manual';
-  window.scrollTo({ top: 0, behavior: 'instant' });
-}
+// Every full opening starts at the homepage. Anchors work once it is visible.
+history.scrollRestoration = 'manual';
+showLandingTop();
 showIntro();
-layoutRoads();
 requestUpdate();

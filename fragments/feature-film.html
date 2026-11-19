@@ -1,41 +1,48 @@
-<section class="inside feature-film" id="inside" aria-labelledby="inside-title" data-feature-film>
-  <div class="film-pin">
-    <div class="film-atmosphere" aria-hidden="true"></div>
-    <div class="film-top container"><span class="eyebrow">YOUR EVERYDAY, CONNECTED</span><span class="film-counter"><strong id="film-counter">01</strong><span> / 04</span></span></div>
-    <div class="show-chapters container">
+<section class="inside feature-film" id="inside" aria-labelledby="inside-heading" data-feature-film>
+  <header class="montage-header container">
+    <div class="montage-heading" data-motion-reveal>
+      <h2 id="inside-heading">Explore the app</h2>
+      <p>Find your collection schedule, learn what goes in each bin, and report waste concerns in your barangay.</p>
+    </div>
+    <div class="montage-tools">
       <div class="feature-tabs film-tabs" role="tablist" aria-label="Explore app features" aria-orientation="horizontal">
-        <button id="tab-collections" class="feature-tab active" role="tab" aria-selected="true" aria-controls="feature-panel" data-feature="collections"><span class="feature-tab-index">01</span><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><strong>Collections</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
-        <button id="tab-assist" class="feature-tab" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="assist"><span class="feature-tab-index">02</span><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg><strong>Scan & learn</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
-        <button id="tab-reports" class="feature-tab" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="reports"><span class="feature-tab-index">03</span><svg class="icon" aria-hidden="true"><use href="#i-report"/></svg><strong>Report a concern</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
-        <button id="tab-events" class="feature-tab" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="events"><span class="feature-tab-index">04</span><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><strong>Community</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
+      <button id="tab-collections" class="feature-tab active" role="tab" aria-selected="true" aria-controls="feature-panel" data-feature="collections"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><strong>Collections</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
+      <button id="tab-assist" class="feature-tab" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="assist"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg><strong>Scan &amp; learn</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
+      <button id="tab-reports" class="feature-tab" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="reports"><svg class="icon" aria-hidden="true"><use href="#i-report"/></svg><strong>Reports</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
+      <button id="tab-events" class="feature-tab" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="events"><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><strong>Community</strong><span class="film-tab-progress" aria-hidden="true"></span></button>
       </div>
     </div>
+  </header>
+  <div class="montage-scene">
+    <div class="montage-background" aria-hidden="true">
+      <svg class="montage-route" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice">
+        <path d="M752 808C841 788 869 765 905 710S966 628 1019 590 1139 523 1118 478"/>
+      </svg>
+    </div>
+    <div class="montage-shade" aria-hidden="true"></div>
+    <img class="montage-leaves" src="assets/montage-foreground.webp" width="980" height="418" alt="" loading="lazy" decoding="async">
     <div class="film-stage container" id="feature-panel" role="tabpanel" tabindex="0" aria-labelledby="tab-collections">
-      <div class="film-copy">
-        <span class="eyebrow film-kicker" id="film-kicker">A LITTLE LESS GUESSWORK</span>
-        <h2 class="film-title" id="inside-title"><span id="film-title-line">Know what’s next.</span><em id="film-title-accent">Before collection day.</em></h2>
-        <p class="film-summary" id="film-summary">Your barangay’s posted dates, collection notes, and little reminders to prepare ahead.</p>
-        <div class="film-copy-detail"><span id="feature-number" class="feature-note-number">01 / 04</span><p id="feature-description">See posted dates, collection notes, and schedules for your barangay.</p></div>
-        <a href="#download" class="film-cta">Take a little care with you <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <div class="film-copy" data-motion-reveal>
+        <span class="film-kicker" id="film-kicker">Collections</span>
+        <h3 class="film-title" id="inside-title"><span id="film-title-line">Know when the</span><em id="film-title-accent">truck is coming.</em></h3>
+        <p class="film-summary" id="film-summary">Find your barangay’s collection dates and see what waste will be picked up.</p>
+        <a href="#download" class="film-cta">Get the app <svg class="icon" aria-hidden="true"><use href="#i-down"/></svg></a>
       </div>
       <div class="film-visual" aria-label="Working example of the TrashTrack app">
-      <div class="demo-feature-label"><span><i aria-hidden="true"></i> IN YOUR POCKET</span><span id="demo-feature-name">Collections</span></div>
-      <div class="demo-device-stage">
-        <svg class="film-trace" viewBox="0 0 500 500" fill="none" aria-hidden="true"><path d="M70 350C-20 190 180 20 340 100S540 420 300 450 80 180 220 180 420 330 300 350"/></svg>
-        <div class="phone feature-phone"><!--PHONE_DEMO--></div>
-        <div class="film-token token-one" aria-hidden="true"><svg class="icon"><use id="film-token-primary" href="#i-calendar"/></svg></div>
-        <div class="film-token token-two" aria-hidden="true"><svg class="icon"><use id="film-token-secondary" href="#i-leaf"/></svg></div>
-        <span class="demo-orbit-label" aria-hidden="true">A LITTLE CARE. EVERY DAY.</span>
-      </div>
-      <div class="demo-mode-switch" role="group" aria-label="Choose how to explore the app"><button type="button" id="show-tour" class="active" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Watch the tour</button><button type="button" id="show-explore" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-touch"/></svg>Explore app</button></div>
-      <div class="demo-player-controls"><button id="show-toggle" type="button" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg><span id="show-toggle-label">Pause tour</span></button><button id="show-replay" type="button"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Replay feature</button></div>
-      <p class="film-preview-note" id="demo-explore-hint">Sit back, or tap the phone and make it yours.</p><span class="demo-example-label">Interactive preview · Example data</span>
+        <div class="demo-feature-label"><span>App preview</span><span id="demo-feature-name">Collections</span></div>
+        <div class="demo-device-stage"><div class="phone feature-phone"><!--PHONE_DEMO--></div></div>
+        <p class="film-preview-note" id="demo-explore-hint">Tap the phone to try it with sample data.</p>
       </div>
     </div>
-    <div class="film-footer container">
-
-      <div class="film-footer-note"><span><i aria-hidden="true"></i><span id="show-status">Playing automatically</span></span><a class="film-skip" href="#our-home">Continue exploring <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></a></div>
-    </div>
-    <div class="film-total-progress" aria-hidden="true"></div>
+  </div>
+  <div class="feature-previews container">
+    <a class="feature-preview" href="#inside" data-feature-link="assist">
+      <div class="feature-preview-copy"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg><h3>Scan &amp; learn</h3><p>See how to sort an item with a photo or a question.</p></div>
+      <img src="assets/app-assist.webp" width="660" height="1467" alt="" loading="lazy" decoding="async">
+    </a>
+    <a class="feature-preview" href="#inside" data-feature-link="reports">
+      <div class="feature-preview-copy"><svg class="icon" aria-hidden="true"><use href="#i-report"/></svg><h3>Report a concern</h3><p>Share a photo and location, then follow the report’s progress.</p></div>
+      <img src="assets/app-report.webp" width="660" height="1467" alt="" loading="lazy" decoding="async">
+    </a>
   </div>
 </section>

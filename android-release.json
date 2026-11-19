@@ -1,7 +1,7 @@
 {
-  "version": "1.0.11",
-  "filename": "TrashTrack-UI-Update-1.0.11.apk",
-  "source": "output/nov7-ui-refinements/TrashTrack-UI-Update-1.0.11.apk",
-  "bytes": 71340480,
-  "sha256": "8be08ed0f31c4a1b54f30e827f068e25add36f27fb20a8e2da2c44f431a46038"
+  "version": "1.0.15",
+  "filename": "TrashTrack-1.0.15.apk",
+  "source": "output/nov19-collection-reminders/TrashTrack-1.0.15.apk",
+  "bytes": 71356956,
+  "sha256": "c93fa4f55757f4d9bd6491712e1868cd20647fe97191c765f13527c42126149c"
 }

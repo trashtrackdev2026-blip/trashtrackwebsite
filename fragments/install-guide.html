@@ -1,0 +1,116 @@
+<dialog id="download-dialog" class="download-dialog install-guide" aria-labelledby="dialog-title">
+  <div class="dialog-content">
+    <button type="button" class="dialog-close" aria-label="Close installation guide"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    <div class="install-layout">
+      <div class="install-copy">
+        <div class="install-brand">
+          <img src="assets/logo.webp" alt="" width="52" height="52">
+          <div><h2 id="dialog-title">Install TrashTrack</h2><p>Android 7.0+ · Version {{VERSION}} · {{SIZE}}</p></div>
+        </div>
+        <p id="install-progress-label" aria-live="polite">Step 1 of 4</p>
+        <div class="install-panels">
+          <section class="install-panel" id="install-download" aria-labelledby="install-download-title">
+            <h3 id="install-download-title" tabindex="-1">Download the APK</h3>
+            <p>Open this page on your Android phone and download the TrashTrack preview. If you download on a computer, transfer the APK to your phone first.</p>
+            <button type="button" id="download-start" class="button button-primary"><svg class="icon" aria-hidden="true"><use href="#i-down"/></svg><span>Download APK</span></button>
+            <progress id="download-progress" max="100" value="0" hidden aria-label="Android app download progress"></progress>
+            <p id="download-status" role="status" aria-live="polite"></p>
+            <button type="button" id="download-cancel" class="text-link" hidden>Cancel download</button>
+            <a id="download-save" class="text-link" hidden>Save APK again</a>
+          </section>
+          <section class="install-panel" id="install-open" aria-labelledby="install-open-title" hidden>
+            <h3 id="install-open-title" tabindex="-1">Open the downloaded file</h3>
+            <p>On your phone, open your browser’s <strong>Downloads</strong> or the <strong>Downloads</strong> folder in Files. Tap <strong>{{FILENAME}}</strong>.</p>
+          </section>
+          <section class="install-panel" id="install-allow" aria-labelledby="install-allow-title" hidden>
+            <h3 id="install-allow-title" tabindex="-1">Allow installation if Android asks</h3>
+            <p>Tap <strong>Settings</strong> on the Android prompt and turn on <strong>Allow from this source</strong> for the browser or Files app you used. Go back to the APK. If the installer is already open, continue to the next step.</p>
+            <p>On Android 7, look for <strong>Unknown sources</strong> under <strong>Settings → Security</strong>.</p>
+            <a class="text-link" href="https://developer.android.com/distribute/marketing-tools/alternative-distribution" target="_blank" rel="noopener">Android installation help</a>
+          </section>
+          <section class="install-panel" id="install-finish" aria-labelledby="install-finish-title" hidden>
+            <h3 id="install-finish-title" tabindex="-1">Install and open TrashTrack</h3>
+            <p>Tap <strong>Install</strong> or <strong>Update</strong>, then tap <strong>Open</strong>. Sign in or create a resident account to get started.</p>
+          </section>
+        </div>
+        <div class="install-navigation">
+          <button type="button" class="install-play" id="install-play">
+            <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Play walkthrough</span>
+          </button>
+          <div>
+            <button class="install-previous" id="install-previous" type="button" hidden>Back</button>
+            <button class="button button-primary" id="install-next" type="button">Next</button>
+          </div>
+        </div>
+      </div>
+      <div class="install-scene" role="group" aria-label="Interactive Android phone preview">
+        <span class="install-preview-label" aria-hidden="true">Phone preview</span>
+        <div class="install-device" data-preview-phase="ready">
+          <div class="install-device-display">
+            <div class="install-device-status" aria-hidden="true"><span>9:41</span><span class="install-device-camera"></span><span>LTE ▰</span></div>
+            <div class="install-phone-frames">
+              <section class="install-phone-screen" data-install-screen aria-label="Download preview">
+                <div class="install-phone-system"><svg class="icon" aria-hidden="true"><use href="#i-android"/></svg>TrashTrack website</div>
+                <div class="install-phone-hero">Take TrashTrack<br>with you.</div>
+                <div class="install-phone-content">
+                  <button type="button" class="install-phone-action" data-preview-action>Download APK</button>
+                  <div class="install-phone-meter" aria-hidden="true"></div>
+                  <p class="install-phone-feedback" role="status">{{FILENAME}}</p>
+                </div>
+              </section>
+              <section class="install-phone-screen" data-install-screen aria-label="Downloads preview" hidden>
+                <div class="install-phone-system"><svg class="icon" aria-hidden="true"><use href="#i-down"/></svg>Downloads</div>
+                <div class="install-phone-content">
+                  <button type="button" class="install-phone-file" data-preview-action>
+                    <svg class="icon" aria-hidden="true"><use href="#i-document"/></svg>
+                    <span>{{FILENAME}}<small>{{SIZE}}</small></span>
+                  </button>
+                  <p class="install-phone-feedback" role="status"></p>
+                </div>
+              </section>
+              <section class="install-phone-screen" data-install-screen aria-label="Android settings preview" hidden>
+                <div class="install-phone-system"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Install unknown apps</div>
+                <div class="install-phone-content">
+                  <strong>Browser</strong>
+                  <button type="button" class="install-phone-switch" data-preview-action role="switch" aria-checked="false">
+                    Allow from this source <span aria-hidden="true"></span>
+                  </button>
+                  <p class="install-phone-feedback" role="status"></p>
+                </div>
+              </section>
+              <div class="install-phone-screen install-phone-final" data-install-screen hidden>
+                <section class="install-phone-installer" aria-label="Install and open preview">
+                  <div class="install-phone-sheet">
+                    <img src="assets/logo.webp" alt="" width="36" height="36">
+                    <strong>TrashTrack</strong>
+                    <p class="install-phone-feedback" role="status">Install this app?</p>
+                    <button type="button" class="install-phone-action" data-preview-action>Install</button>
+                    <div class="install-phone-meter" aria-hidden="true"></div>
+                  </div>
+                </section>
+                <section class="install-phone-welcome" aria-labelledby="install-welcome-title" hidden>
+                  <div class="install-welcome-photo">
+                    <img src="assets/logo.webp" alt="" width="38" height="38">
+                    <span><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg>Balete, Batangas</span>
+                  </div>
+                  <div class="install-welcome-sheet">
+                    <h4 id="install-welcome-title" tabindex="-1">Welcome to<br>TrashTrack</h4>
+                    <p>Check collection days, report waste concerns, and learn what goes in each bin.</p>
+                    <div class="install-welcome-actions"><span>Log In</span><span>Sign Up</span></div>
+                  </div>
+                </section>
+              </div>
+            </div>
+            <div class="install-gesture-bar" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="install-steps" aria-label="Installation steps">
+      <li><button type="button" data-install-step="0" aria-controls="install-download" aria-current="step"><span aria-hidden="true"><svg class="icon"><use href="#i-down"/></svg></span>Download</button></li>
+      <li><button type="button" data-install-step="1" aria-controls="install-open"><span aria-hidden="true"><svg class="icon"><use href="#i-document"/></svg></span>Open file</button></li>
+      <li><button type="button" data-install-step="2" aria-controls="install-allow"><span aria-hidden="true"><svg class="icon"><use href="#i-settings"/></svg></span>Allow access</button></li>
+      <li><button type="button" data-install-step="3" aria-controls="install-finish"><span aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span>Install</button></li>
+    </ol>
+  </div>
+</dialog>

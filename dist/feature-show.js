@@ -2,13 +2,13 @@ import { FEATURE_ORDER, ShowClock } from './show-clock.js';
 import { PhoneDemo } from './phone-demo.js';
 
 const FEATURES = {
-  collections:{title:'Know what’s next.',accent:'Before collection day.',kicker:'A LITTLE LESS GUESSWORK',summary:'Your barangay’s posted dates and notes, with a little guidance to prepare ahead.',description:'Watch the demo open a schedule and explore collection notes.',icon:'calendar',secondary:'leaf'},
-  assist:{title:'A little unsure?',accent:'Let’s figure it out.',kicker:'A BETTER DIRECTION FOR EVERY ITEM',summary:'Scan an example item, see its guidance, and ask how to prepare it.',description:'Watch a sample scan turn into practical waste guidance.',icon:'scan',secondary:'recycle'},
-  reports:{title:'See something?',accent:'Start a little change.',kicker:'SMALL OBSERVATIONS. SHARED CARE.',summary:'A photo, a place, a few helpful details. See how a concern comes together.',description:'Watch the example fill out a concern and preview its details.',icon:'report',secondary:'pin'},
-  events:{title:'Good happens',accent:'when we take part.',kicker:'OUR HOME. OUR SHARED EVERYDAY.',summary:'Find community activities, explore the details, and take part with your neighbours.',description:'Watch the example explore an event and preview joining it.',icon:'people',secondary:'calendar'},
+  collections:{title:'Know when the',accent:'truck is coming.',summary:'Find your barangay’s collection dates and see what waste will be picked up.'},
+  assist:{title:'Find the right bin',accent:'for everyday items.',summary:'Scan an item or ask TrashTrack Assist how to sort it.'},
+  reports:{title:'Report what you see.',accent:'Follow what happens.',summary:'Share a photo and location so your barangay can review the concern.'},
+  events:{title:'Find events',accent:'close to home.',summary:'Explore local cleanups, workshops, and other activities in Balete.'},
 };
 
-export function startFeatureShow({ paused=false, enableMotion }) {
+export function startFeatureShow({ paused=false }) {
   const film=document.querySelector('[data-feature-film]');
   const $=selector=>film.querySelector(selector);
   const tabs=[...film.querySelectorAll('.feature-tab')];
@@ -31,45 +31,34 @@ export function startFeatureShow({ paused=false, enableMotion }) {
   for(const name of ['enter','accent','open','out'])film.style.setProperty(`--film-${name}`,'1');
 
   function running(){return visible&&!document.hidden&&reasons.size===0&&!destroyed;}
-  function updateControls(){
-    const stopped=reasons.size>0;
-    $('#show-toggle').setAttribute('aria-pressed',String(stopped));
-    $('#show-toggle-label').textContent=stopped?'Continue tour':'Pause tour';
-    $('#show-toggle use').setAttribute('href',stopped?'#i-play':'#i-pause');
-    $('#show-status').textContent=motionPaused?'Motion paused':exploring?'You’re in control':stopped?'Tour paused':'Playing automatically';
-    film.dataset.playing=String(!stopped);
+  function updateMode(){
+    film.dataset.playing=String(running());
     film.dataset.mode=exploring?'explore':'tour';
-    $('#show-tour').classList.toggle('active',!exploring);$('#show-tour').setAttribute('aria-pressed',String(!exploring));
-    $('#show-explore').classList.toggle('active',exploring);$('#show-explore').setAttribute('aria-pressed',String(exploring));
-    $('#demo-explore-hint').textContent=exploring?'Try all five tabs. Your changes stay as you explore.':'Sit back, or tap the phone and make it yours.';
+    $('#demo-explore-hint').textContent=exploring?'Use the phone tabs to explore the sample screens.':'Tap the phone to try it with sample data.';
   }
-  function pause(reason){reasons.add(reason);clock.suspend();phone.hidePointer();cancelAnimationFrame(raf);raf=0;updateControls();}
-  function explore({focus=false}={}){
+  function pause(reason){reasons.add(reason);clock.suspend();phone.hidePointer();cancelAnimationFrame(raf);raf=0;updateMode();}
+  function explore(){
     if(!exploring){
       ++transition;animations.forEach(animation=>animation.cancel());animations=[];
       const displayed=FEATURE_ORDER.indexOf(film.dataset.scene);if(displayed>=0)clock.select(displayed);
     }
     exploring=true;pause('manual');
-    if(focus)$('#live-demo .demo-bottom-nav [aria-pressed="true"]').focus({preventScroll:true});
   }
-  function resume(){
+  function resetAfterExploring(){
     ++transition;animations.forEach(animation=>animation.cancel());animations=[];
     exploring=false;
-    if(motionPaused)enableMotion();
-    reasons.delete('manual');reasons.delete('keyboard');reasons.delete('focus');
-    clock.select(clock.index);render(clock.index);updateControls();schedule();
+    reasons.delete('manual');reasons.delete('keyboard');
+    clock.select(clock.index);render(clock.index);
   }
   function render(index,{preserve=false}={}){
     const key=FEATURE_ORDER[index],data=FEATURES[key];
     film.dataset.scene=key;
     tabs.forEach(tab=>{const active=tab.dataset.feature===key;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});
     $('#feature-panel').setAttribute('aria-labelledby',`tab-${key}`);
-    $('#film-counter').textContent=String(index+1).padStart(2,'0');
-    $('#film-kicker').textContent=data.kicker;$('#film-title-line').textContent=data.title;$('#film-title-accent').textContent=data.accent;
-    $('#film-summary').textContent=data.summary;$('#feature-description').textContent=data.description;
-    $('#feature-number').textContent=`0${index+1} / 04`;
-    $('#film-token-primary').setAttribute('href',`#i-${data.icon}`);$('#film-token-secondary').setAttribute('href',`#i-${data.secondary}`);
-    $('#demo-feature-name').textContent=tabs[index].querySelector('strong').textContent;
+    const label=tabs[index].querySelector('strong').textContent;
+    $('#film-kicker').textContent=label;$('#film-title-line').textContent=data.title;$('#film-title-accent').textContent=data.accent;
+    $('#film-summary').textContent=data.summary;
+    $('#demo-feature-name').textContent=label;
     phone.setFeature(key,{preserve});if(!preserve)phone.render(0);film.style.setProperty('--show-scene-progress','0');
   }
   function animateTo(index,{instant=false,preserve=false}={}){
@@ -90,7 +79,6 @@ export function startFeatureShow({ paused=false, enableMotion }) {
     if(changed)animateTo(clock.index);
     if(film.dataset.scene===FEATURE_ORDER[clock.index])phone.render(clock.elapsed);
     film.style.setProperty('--show-scene-progress',String(clock.progress));
-    film.style.setProperty('--show-total-progress',String((clock.index+clock.progress)/FEATURE_ORDER.length));
     raf=requestAnimationFrame(frame);
   }
   function schedule(){if(running()&&!raf){clock.suspend();raf=requestAnimationFrame(frame);}}
@@ -98,7 +86,7 @@ export function startFeatureShow({ paused=false, enableMotion }) {
     const index=FEATURE_ORDER.indexOf(key);if(index<0)return;
     if(manual)explore();else{exploring=false;reasons.delete('manual');reasons.delete('keyboard');}
     if(keyboard)pause('keyboard');
-    clock.select(index);animateTo(index,{instant:manual||keyboard,preserve:manual});updateControls();
+    clock.select(index);animateTo(index,{instant:manual||keyboard,preserve:manual});updateMode();
     if(scroll)film.scrollIntoView({behavior:motionPaused?'instant':'smooth',block:'start'});
     schedule();
   }
@@ -111,23 +99,23 @@ export function startFeatureShow({ paused=false, enableMotion }) {
       if(next!==undefined){event.preventDefault();tabs[next].focus();select(tabs[next].dataset.feature,{keyboard:true});}
     });
   });
-  $('#show-toggle').addEventListener('click',()=>reasons.size?resume():pause('manual'));
-  $('#show-replay').addEventListener('click',resume);
-  $('#show-tour').addEventListener('click',resume);
-  $('#show-explore').addEventListener('click',()=>explore({focus:true}));
   $('#live-demo').addEventListener('focusin',()=>pause('focus'));
-  $('#live-demo').addEventListener('focusout',event=>{if(!$('#live-demo').contains(event.relatedTarget)){reasons.delete('focus');updateControls();schedule();}});
+  $('#live-demo').addEventListener('focusout',event=>{if(!$('#live-demo').contains(event.relatedTarget)){reasons.delete('focus');updateMode();schedule();}});
   const observer=new IntersectionObserver(entries=>{
-    visible=entries[0].intersectionRatio>=.35;
-    if(!visible){clock.suspend();cancelAnimationFrame(raf);raf=0;}else schedule();
+    const entry=entries[0];
+    visible=entry.intersectionRatio>=.35;
+    if(!visible){clock.suspend();cancelAnimationFrame(raf);raf=0;}
+    if(!entry.isIntersecting&&!reasons.has('focus')&&(exploring||reasons.has('keyboard')))resetAfterExploring();
+    updateMode();
+    schedule();
   },{threshold:[0,.15,.35,.6,1]});
   observer.observe($('.demo-device-stage'));
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){clock.suspend();cancelAnimationFrame(raf);raf=0;}else schedule();});
-  render(0);updateControls();
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){clock.suspend();cancelAnimationFrame(raf);raf=0;}else schedule();updateMode();});
+  render(0);updateMode();
   return{
     select,
-    setMotion(value){motionPaused=value;if(value)pause('motion');else{reasons.delete('motion');updateControls();schedule();}},
-    setArrival(value){if(value)pause('arrival');else{reasons.delete('arrival');updateControls();schedule();}},
+    setMotion(value){motionPaused=value;if(value)pause('motion');else{reasons.delete('motion');updateMode();schedule();}},
+    setArrival(value){if(value)pause('arrival');else{reasons.delete('arrival');updateMode();schedule();}},
     destroy(){destroyed=true;observer.disconnect();cancelAnimationFrame(raf);animations.forEach(animation=>animation.cancel());phone.destroy();},
   };
 }
