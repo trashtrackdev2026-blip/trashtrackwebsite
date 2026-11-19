@@ -20,7 +20,7 @@ for (const [id, name] of Object.entries(map)) {
   library = pattern.test(library) ? library.replace(pattern, symbol) : library.replace('</defs>', symbol+'</defs>');
 }
 const icon = (name, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
-const wordmark = '<img src="assets/logo.webp" alt="" width="44" height="44"><span>TrashTrack</span>';
+const wordmark = '<img src="assets/trashtrack-mark.webp" alt="" width="44" height="44"><span>TrashTrack</span>';
 const release = JSON.parse(await readFile(path.join(root, 'android-release.json'), 'utf8'));
 const releaseSize = `${(release.bytes / (1024 * 1024)).toFixed(1)} MB`;
 const installGuide = (await readFile(path.join(root, 'fragments/install-guide.html'), 'utf8'))
@@ -36,7 +36,7 @@ const html = `<!doctype html>
 <title>TrashTrack — A little care. A greener Balete.</title>
 <meta name="description" content="For the place we call home. Discover TrashTrack for Balete: collection schedules, waste guidance, reports and community events. Download the Android preview.">
 <meta property="og:title" content="TrashTrack — A greener Balete"><meta property="og:description" content="A little care for the place we call home."><meta property="og:type" content="website">
-<link rel="icon" type="image/webp" href="assets/logo.webp"><link rel="preload" href="assets/outfit.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="assets/balete-cinematic.webp" as="image" fetchpriority="high">
+<link rel="icon" type="image/webp" href="assets/trashtrack-mark.webp"><link rel="preload" href="assets/outfit.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="assets/balete-cinematic.webp" as="image" fetchpriority="high">
 <link rel="stylesheet" href="styles.css"><script type="module" src="app.js"></script></head><body>
 <a class="skip-link" href="#main">Skip to content</a>
 ${library}

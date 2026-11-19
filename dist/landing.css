@@ -11,6 +11,7 @@
   width: 44px;
   height: 44px;
   padding: 0;
+  border-radius: 0;
   background: transparent;
   object-fit: contain;
 }
@@ -488,7 +489,7 @@
   align-items: center;
   gap: 12px;
 }
-.install-brand img { width: 52px; height: 52px; flex: 0 0 52px; border-radius: 12px; }
+.install-brand img { width: 52px; height: 52px; flex: 0 0 52px; object-fit: contain; }
 .install-brand h2 {
   margin: 0;
   font-family: inherit;
@@ -721,7 +722,7 @@
 .install-phone-meter::before { content: ""; display: block; width: 100%; height: 100%; background: #2a6748; transform-origin: left; animation: install-preview-progress 830ms ease-out both; }
 .install-phone-installer { display: grid; place-items: center; padding: 12px; background: linear-gradient(#102e2630, #102e2670), var(--install-photo) 55% 50% / cover; }
 .install-phone-sheet { display: grid; width: 100%; gap: 8px; padding: 14px; border-radius: 16px; background: var(--install-paper); box-shadow: 0 10px 26px #102e2650; }
-.install-phone-sheet img, .install-welcome-photo img { border-radius: 9px; }
+.install-phone-sheet img, .install-welcome-photo img { object-fit: contain; }
 .install-phone-welcome { display: flex; flex-direction: column; margin-top: -26px; }
 .install-welcome-photo {
   display: flex;
