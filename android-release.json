@@ -1,7 +1,7 @@
 {
-  "version": "1.0.16",
-  "filename": "TrashTrack-1.0.16.apk",
-  "source": "output/report-photo-required/TrashTrack-1.0.16.apk",
-  "bytes": 71356952,
-  "sha256": "07583d0d8eff3a35b1c5153c87067dd827e34a14acb22dedd052d5dc57c33746"
+  "version": "1.0.17",
+  "filename": "TrashTrack-1.0.17.apk",
+  "source": "trashtrack-website/output/report-subjects/TrashTrack-1.0.17.apk",
+  "bytes": 71356956,
+  "sha256": "58743757ba0e0310dd0ecb026da6c31a2113c458b12816b127556abf5df967a0"
 }
